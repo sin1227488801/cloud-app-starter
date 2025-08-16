@@ -1,0 +1,44 @@
+repo-structure-L3
+
+.
+├── .env.example
+├── .github
+│   └── workflows
+│       └── tf.yaml
+├── .gitignore
+├── Dockerfile
+├── Makefile
+├── README.md
+├── docker
+│   └── terraform
+│       ├── Dockerfile
+│       └── entrypoint.sh
+├── docs
+│   └── runbook.md
+├── envs
+│   ├── aws
+│   │   ├── Default
+│   │   ├── GitHubActions
+│   │   └── aws-ec2-mvp
+│   └── azure
+│       ├── Default
+│       ├── GitHubActions
+│       └── azure-b1s-mvp
+├── modules
+│   ├── compute
+│   │   ├── aws
+│   │   ├── azure
+│   │   └── compute.tf
+│   ├── network
+│   │   ├── aws
+│   │   ├── azure
+│   │   └── network.tf
+│   └── observability
+│       ├── aws
+│       └── azure
+├── repo-structure-L3.txt
+└── scripts
+    ├── doctor.sh
+    └── tf.sh
+
+25 directories, 14 files

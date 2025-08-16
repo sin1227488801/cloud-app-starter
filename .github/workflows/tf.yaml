@@ -1,0 +1,17 @@
+name: terraform-validate
+on:
+  pull_request:
+    paths:
+      - "envs/**"
+      - "modules/**"
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+      - run: terraform fmt -check -recursive
+      - run: terraform -chdir=envs/azure validate
+      - run: terraform -chdir=envs/aws validate

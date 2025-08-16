@@ -1,0 +1,47 @@
+name: Terraform (Azure)
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  plan-apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/azure/stacks/vm-basic
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2  # ローカルと合わせた(1.9.5でも可)
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # 🔑 Secretの公開鍵文字列をファイル化
+      - name: Prepare SSH public key
+        run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > .github/id_rsa.pub
+
+      - name: Terraform Init (AzureRM backend)
+        run: terraform init -backend-config=../../backend.hcl
+
+      - run: terraform fmt -check
+      - run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -var 'ssh_public_key_path=.github/id_rsa.pub'
+
+      - name: Terraform Apply (main only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false -var 'ssh_public_key_path=.github/id_rsa.pub'
