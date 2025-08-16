@@ -1,0 +1,44 @@
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.88.4
+    hooks:
+      - id: terraform_fmt
+        exclude: ^examples/_legacy/
+      - id: terraform_validate
+        exclude: ^(examples/_legacy/|envs/(aws|azure)/.*-mvp/)
+      # TODO: Re-enable in Phase2 after installing tools
+      # - id: terraform_tflint
+      #   args:
+      #     - --args=--only=terraform_deprecated_interpolation
+      #     - --args=--only=terraform_unused_declarations
+      #     - --args=--only=terraform_comment_syntax
+      #   exclude: ^examples/_legacy/
+      # - id: terraform_trivy
+      #   args: ['--args=--severity=CRITICAL,HIGH']
+      #   exclude: ^examples/_legacy/
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix']
+        exclude: ^examples/_legacy/
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ['-d', 'relaxed']
+        exclude: ^examples/_legacy/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^examples/_legacy/
+      - id: end-of-file-fixer
+        exclude: ^examples/_legacy/
+      - id: check-yaml
+        exclude: ^examples/_legacy/
+      - id: check-added-large-files
+        exclude: ^examples/_legacy/

@@ -1,0 +1,5 @@
+{
+  "default": true,
+  "MD013": false, // ignore line length for now
+  "MD025": { "front_matter_title": "", "level": 1 } // reduce false positives on H1
+}

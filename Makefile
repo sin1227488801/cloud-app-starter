@@ -1,24 +1,37 @@
-TF_IMAGE := hashicorp/terraform:1.9.5
-ENVFILE ?= .env
+ENVFLAG :=
+ifneq ("$(wildcard .env)","")
+ENVFLAG := --env-file .env
+endif
+
+TF_VERSION ?= 1.9.5
+TF_IMAGE := hashicorp/terraform:$(TF_VERSION)
 CLOUD ?= azure
 WORKDIR := /workspace
 
-docker-run = docker run --rm -it --env-file $(ENVFILE) -v $(PWD):$(WORKDIR) -w $(WORKDIR) $(TF_IMAGE)
+docker-run = docker run --rm -it $(ENVFLAG) -v $(PWD):$(WORKDIR) -w $(WORKDIR) $(TF_IMAGE)
+
+ifeq ($(CLOUD),azure)
+ENV_DIR := envs/azure/azure-b1s-mvp
+else ifeq ($(CLOUD),aws)
+ENV_DIR := envs/aws/aws-ec2-mvp
+else
+$(error Unsupported CLOUD: $(CLOUD). Use azure or aws)
+endif
 
 docker-init:
-	$(docker-run) -chdir=envs/$(CLOUD) init -backend-config=backend.hcl || true
+	$(docker-run) -chdir=$(ENV_DIR) init -backend-config=backend.hcl || true
 
 docker-plan:
-	$(docker-run) -chdir=envs/$(CLOUD) plan
+	$(docker-run) -chdir=$(ENV_DIR) plan
 
 docker-apply:
-	$(docker-run) -chdir=envs/$(CLOUD) apply -auto-approve
+	$(docker-run) -chdir=$(ENV_DIR) apply -auto-approve
 
 docker-destroy:
-	$(docker-run) -chdir=envs/$(CLOUD) destroy -auto-approve
+	$(docker-run) -chdir=$(ENV_DIR) destroy -auto-approve
 
 fmt:
 	$(docker-run) fmt -recursive
 
-validate:
-	$(docker-run) -chdir=envs/$(CLOUD) validate
+validate: docker-init
+	$(docker-run) -chdir=$(ENV_DIR) validate
