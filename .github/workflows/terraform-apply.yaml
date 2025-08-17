@@ -19,13 +19,13 @@ jobs:
         with:
           terraform_version: 1.9.5
 
-      # PRと同条件で validate（backendは無効）
+      # PRと同条件で validate（backend無効）
       - name: Terraform Validate (Azure)
         run: |
           terraform -chdir=envs/azure/azure-b1s-mvp init -backend=false
           terraform -chdir=envs/azure/azure-b1s-mvp validate
 
-      # main へpush時に apply（Secrets の SP 認証を使用）
+      # main で apply（SP 認証は Secrets から）
       - name: Terraform Apply (Azure)
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -35,3 +35,32 @@ jobs:
         run: |
           terraform -chdir=envs/azure/azure-b1s-mvp init
           terraform -chdir=envs/azure/azure-b1s-mvp apply -auto-approve
+
+      # Apply直後の state を使って outputs を取得 → そのままアップロード
+      - name: App Deploy to Azure Static Website
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          SA_NAME="$(terraform -chdir=envs/azure/azure-b1s-mvp output -raw storage_account_name)"
+          echo "Storage Account: $SA_NAME"
+
+          # Azure CLI インストール（ランナーにプリインの場合はスキップされます）
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          fi
+
+          # SP ログイン
+          az login --service-principal -u "$ARM_CLIENT_ID" -p "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID" 1>/dev/null
+
+          # アプリソース（なければ placeholder 生成）
+          SRC_DIR="app/dist"; [ -d "$SRC_DIR" ] || SRC_DIR=app
+          mkdir -p "$SRC_DIR"
+          [ -f "$SRC_DIR/index.html" ] || printf '%s\n' "<!doctype html><meta charset=utf-8><title>SRE IaC Starter</title><h1>SRE IaC Starter</h1><p>Deployed: $(date -u +%FT%TZ)</p>" > "$SRC_DIR/index.html"
+
+          # アップロード（$web はクォートでリテラル）
+          az storage blob upload-batch --account-name "$SA_NAME" -s "$SRC_DIR" -d '$web' --overwrite --auth-mode login
+
+          # URL 表示用（失敗しても続行）
+          az storage account show -n "$SA_NAME" --query "primaryEndpoints.web" -o tsv || true
