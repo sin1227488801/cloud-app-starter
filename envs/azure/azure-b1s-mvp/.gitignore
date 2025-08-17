@@ -1,5 +1,0 @@
-.env
-.terraform*
-*.tfstate*
-**/.terraform
-crash.log
