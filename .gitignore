@@ -3,3 +3,11 @@
 *.tfstate*
 **/.terraform
 crash.log
+# local env & build
+.env
+.env.*.local
+node_modules/
+app/dist/
+**/.terraform/
+**/terraform.tfstate*
+**/tfplan.*
