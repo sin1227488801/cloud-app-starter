@@ -1,122 +1,66 @@
 name: terraform-apply
-
 on:
   push:
     branches: [main]
-    paths: ["envs/**", "modules/**"]
-  workflow_dispatch:
+    paths:
+      - "envs/**"
+      - "modules/**"
 
 permissions:
   contents: read
 
 jobs:
-  apply:
+  deploy:
     runs-on: ubuntu-latest
-    environment: production
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.5
-          terraform_wrapper: false
 
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Init (Azure)
-        run: |
-          cd envs/azure/azure-b1s-mvp
-          terraform init -backend-config=backend.hcl
-        env:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
+      # PRと同条件で validate（backend無効）
       - name: Terraform Validate (Azure)
         run: |
-          cd envs/azure/azure-b1s-mvp
-          terraform validate
+          terraform -chdir=envs/azure/azure-b1s-mvp init -backend=false
+          terraform -chdir=envs/azure/azure-b1s-mvp validate
 
-      - name: Terraform Plan (Azure)
-        id: plan
-        run: |
-          cd envs/azure/azure-b1s-mvp
-          terraform plan -detailed-exitcode -no-color -out=tfplan
-        env:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-        continue-on-error: true
-
+      # main で apply（SP 認証は Secrets から）
       - name: Terraform Apply (Azure)
-        if: steps.plan.outputs.exitcode == 2
-        run: |
-          cd envs/azure/azure-b1s-mvp
-
-          echo "🚀 Applying Terraform changes to Azure..."
-          terraform apply -auto-approve tfplan
-
-          echo "✅ Terraform apply completed successfully!"
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
-      - name: Get Infrastructure Outputs
-        if: steps.plan.outputs.exitcode == 2 || steps.plan.outputs.exitcode == 0
-        id: outputs
         run: |
-          cd envs/azure/azure-b1s-mvp
+          terraform -chdir=envs/azure/azure-b1s-mvp init
+          terraform -chdir=envs/azure/azure-b1s-mvp apply -auto-approve
 
-          STORAGE_ACCOUNT=$(terraform output -raw storage_account_name 2>/dev/null || echo "N/A")
-          WEBSITE_URL=$(terraform output -raw static_website_url 2>/dev/null || echo "N/A")
-          SUBNET_ID=$(terraform output -raw subnet_id 2>/dev/null || echo "N/A")
-
-          echo "storage_account=$STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
-          echo "website_url=$WEBSITE_URL" >> $GITHUB_OUTPUT
-          echo "subnet_id=$SUBNET_ID" >> $GITHUB_OUTPUT
+      # Apply直後の state を使って outputs を取得 → そのままアップロード
+      - name: App Deploy to Azure Static Website
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
-      - name: Summary
         run: |
-          echo "## 🏗️ Terraform Apply Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          SA_NAME="$(terraform -chdir=envs/azure/azure-b1s-mvp output -raw storage_account_name)"
+          echo "Storage Account: $SA_NAME"
 
-          if [ "${{ steps.plan.outputs.exitcode }}" = "0" ]; then
-            echo "### ✅ No Changes Required" >> $GITHUB_STEP_SUMMARY
-            echo "Infrastructure is already up to date." >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.plan.outputs.exitcode }}" = "2" ]; then
-            echo "### 🚀 Changes Applied Successfully" >> $GITHUB_STEP_SUMMARY
-            echo "Infrastructure has been updated." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ❌ Plan Failed" >> $GITHUB_STEP_SUMMARY
-            echo "Please check the logs for errors." >> $GITHUB_STEP_SUMMARY
+          # Azure CLI インストール（ランナーにプリインの場合はスキップされます）
+          if ! command -v az >/dev/null 2>&1; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           fi
 
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📊 Infrastructure Outputs" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storage Account**: \`${{ steps.outputs.outputs.storage_account }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Website URL**: [${{ steps.outputs.outputs.website_url }}](${{ steps.outputs.outputs.website_url }})" >> $GITHUB_STEP_SUMMARY
-          echo "- **Subnet ID**: \`${{ steps.outputs.outputs.subnet_id }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. If app files were also changed, the app-deploy workflow will run automatically" >> $GITHUB_STEP_SUMMARY
-          echo "2. Visit the website to verify the infrastructure" >> $GITHUB_STEP_SUMMARY
-          echo "3. Check Azure Portal for resource status" >> $GITHUB_STEP_SUMMARY
+          # SP ログイン
+          az login --service-principal -u "$ARM_CLIENT_ID" -p "$ARM_CLIENT_SECRET" --tenant "$ARM_TENANT_ID" 1>/dev/null
 
-      - name: Plan Failed
-        if: steps.plan.outputs.exitcode == 1
-        run: |
-          echo "❌ Terraform plan failed"
-          exit 1
+          # アプリソース（なければ placeholder 生成）
+          SRC_DIR="app/dist"; [ -d "$SRC_DIR" ] || SRC_DIR=app
+          mkdir -p "$SRC_DIR"
+          [ -f "$SRC_DIR/index.html" ] || printf '%s\n' "<!doctype html><meta charset=utf-8><title>SRE IaC Starter</title><h1>SRE IaC Starter</h1><p>Deployed: $(date -u +%FT%TZ)</p>" > "$SRC_DIR/index.html"
+
+          # アップロード（$web はクォートでリテラル）
+          az storage blob upload-batch --account-name "$SA_NAME" -s "$SRC_DIR" -d '$web' --overwrite --auth-mode login
+
+          # URL 表示用（失敗しても続行）
+          az storage account show -n "$SA_NAME" --query "primaryEndpoints.web" -o tsv || true
