@@ -44,32 +44,46 @@ markdown
 Minimal, reproducible IaC scaffold to deploy the same small stack on **Azure** and **AWS**.
 Goal: anyone can run the same commands and get the same infra.
 
-## Quickstart
+## 🚀 Quickstart
 
-1) Copy env file and edit minimal vars:
+### 1分デプロイ
 
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+# 1. リポジトリクローン
+git clone https://github.com/sin1227488801/sre-iac-starter.git
+cd sre-iac-starter
 
-2) Try Azure first (local state is fine initially):
+# 2. 認証情報設定
+cp .env.example .env
+# .envを編集して実際の認証情報を設定
 
-   ```bash
-   make docker-init CLOUD=azure
-   make docker-plan CLOUD=azure
-   make docker-apply CLOUD=azure
-   # verify, then
-   make docker-destroy CLOUD=azure
-   ```
+# 3. インフラ構築
+make up-azure
 
-3) Then AWS:
+# 4. アプリデプロイ
+make app-deploy
 
-   ```bash
-   make docker-init CLOUD=aws
-   make docker-plan CLOUD=aws
-   make docker-apply CLOUD=aws
-   make docker-destroy CLOUD=aws
-   ```
+# 5. URL確認
+make url-azure
+```
+
+### 🎯 デモの見方
+
+1. **ローカルデモ**: 上記手順でデプロイ後、`make url-azure`で表示されるURLにアクセス
+2. **ライブデモ**: [https://sreiacdevm627ymaf.z11.web.core.windows.net/](https://sreiacdevm627ymaf.z11.web.core.windows.net/)
+3. **UI機能**:
+   - フェーズ進捗の可視化
+   - リアルタイムデプロイ状況
+   - ワンクリックコマンドコピー
+   - アーキテクチャ図表示
+
+### 🔄 CI/CD フロー
+
+```text
+Developer → git push → GitHub Actions → Terraform → Azure Storage → Static Website
+     ↓              ↓                    ↓              ↓              ↓
+   コード変更      PR作成時プラン      インフラ更新    アプリデプロイ   自動反映
+```
 
 ## Layout
 
@@ -102,3 +116,34 @@ pre-commit run --all-files
 - Start with **LOCAL state** → switch to remote later.
 - Keep modules tiny: `network`, `compute` first; add `observability` later.
 - Use Docker runner to avoid local TF/version drift.
+
+## 🔄 CI/CD パイプライン
+
+### 自動化フロー
+
+1. **PR作成時**: `terraform-plan-pr` ワークフローが実行
+   - Azure/AWS環境のプラン結果をPRにコメント
+   - 構文チェック・検証実行
+
+2. **mainマージ時**:
+   - `terraform-apply`: インフラ変更を自動適用
+   - `app-deploy`: アプリファイル変更を自動デプロイ
+
+3. **リアルタイム更新**:
+   - `meta.json`でデプロイ状況を追跡
+   - ウェブサイトで最新状況を表示
+
+### ワークフロー詳細
+
+- **terraform-plan-pr.yaml**: PR時の自動プラン
+- **terraform-apply.yaml**: インフラ自動適用
+- **app-deploy.yaml**: 静的サイト自動デプロイ
+
+### 将来の拡張予定
+
+- **Remote State**: Azure Storage Backend移行
+- **Security**: tfsec/checkov統合
+- **Testing**: Terratest導入
+- **Environments**: staging/production分離
+
+**🎯 デモサイト**: [https://sreiacdevm627ymaf.z11.web.core.windows.net/](https://sreiacdevm627ymaf.z11.web.core.windows.net/)

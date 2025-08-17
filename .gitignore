@@ -3,6 +3,9 @@
 *.tfstate*
 **/.terraform
 crash.log
+
+# CI generated files
+app/meta.json
 # local env & build
 .env
 .env.*.local

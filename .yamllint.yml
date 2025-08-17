@@ -1,7 +1,12 @@
 extends: relaxed
 rules:
-  line-length: { max: 160, allow-non-breakable-words: true }
+  line-length: 
+    max: 120
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
   new-lines:
     type: unix
   trailing-spaces:
-    level: warning
+    level: error
+  empty-lines:
+    max-end: 1

@@ -1,0 +1,123 @@
+name: app-deploy
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+          terraform_wrapper: false
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Terraform Init
+        run: |
+          cd envs/azure/azure-b1s-mvp
+          terraform init -backend-config=backend.hcl
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+      - name: Get Infrastructure Outputs
+        id: terraform-outputs
+        run: |
+          cd envs/azure/azure-b1s-mvp
+          SA_NAME=$(terraform output -raw storage_account_name)
+          WEBSITE_URL=$(terraform output -raw static_website_url)
+          echo "storage_account_name=$SA_NAME" >> $GITHUB_OUTPUT
+          echo "website_url=$WEBSITE_URL" >> $GITHUB_OUTPUT
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+
+      - name: Generate meta.json
+        run: |
+          cat > app/meta.json << EOF
+          {
+            "storageAccountName": "${{ steps.terraform-outputs.outputs.storage_account_name }}",
+            "websiteUrl": "${{ steps.terraform-outputs.outputs.website_url }}",
+            "commitSha": "${{ github.sha }}",
+            "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "repositoryUrl": "${{ github.server_url }}/${{ github.repository }}",
+            "workflow": "${{ github.workflow }}",
+            "runId": "${{ github.run_id }}"
+          }
+          EOF
+
+      - name: Deploy to Azure Storage
+        run: |
+          SA_NAME="${{ steps.terraform-outputs.outputs.storage_account_name }}"
+
+          echo "🚀 Deploying app to Azure Storage Account: $SA_NAME"
+
+          az storage blob upload-batch \
+            --account-name "$SA_NAME" \
+            --source app \
+            --destination '$web' \
+            --overwrite \
+            --auth-mode login
+
+          echo "✅ Deploy completed successfully!"
+          echo "🌐 Website URL: ${{ steps.terraform-outputs.outputs.website_url }}"
+
+      - name: Verify Deployment
+        run: |
+          WEBSITE_URL="${{ steps.terraform-outputs.outputs.website_url }}"
+
+          echo "🔍 Verifying deployment..."
+
+          sleep 10
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEBSITE_URL" || echo "000")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Website is accessible (HTTP $HTTP_STATUS)"
+          else
+            echo "⚠️  Website returned HTTP $HTTP_STATUS"
+            echo "This might be normal for new deployments (propagation delay)"
+          fi
+
+          echo "🌐 Access your website at: $WEBSITE_URL"
+
+      - name: Summary
+        run: |
+          echo "## 🚀 App Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storage Account**: \`${{ steps.terraform-outputs.outputs.storage_account_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Website URL**: [${{ steps.terraform-outputs.outputs.website_url }}](${{ steps.terraform-outputs.outputs.website_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed At**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Visit the website to verify the deployment" >> $GITHUB_STEP_SUMMARY
+          echo "2. Check the deployment status panel on the site" >> $GITHUB_STEP_SUMMARY
+          echo "3. The \`meta.json\` file has been updated with latest deployment info" >> $GITHUB_STEP_SUMMARY
