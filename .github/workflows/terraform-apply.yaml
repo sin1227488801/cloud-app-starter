@@ -14,17 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.5
 
-      # validate は backend 無効で OK（PR と同じ条件）
+      # PRと同条件で validate（backendは無効）
       - name: Terraform Validate (Azure)
         run: |
           terraform -chdir=envs/azure/azure-b1s-mvp init -backend=false
           terraform -chdir=envs/azure/azure-b1s-mvp validate
 
-      # apply は backend 有効で実行（Secrets から SP 認証）
+      # main へpush時に apply（Secrets の SP 認証を使用）
       - name: Terraform Apply (Azure)
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
