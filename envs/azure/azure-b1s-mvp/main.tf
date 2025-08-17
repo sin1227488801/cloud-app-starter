@@ -3,6 +3,9 @@ terraform {
   required_providers {
     azurerm = { source = "hashicorp/azurerm", version = "~> 3.117" }
   }
+
+  # TODO Phase2: Enable remote state
+  # backend "azurerm" {}
 }
 
 provider "azurerm" {
@@ -10,14 +13,22 @@ provider "azurerm" {
 }
 
 module "network" {
-  source   = "../../modules/network/azure"
+  source   = "../../../../modules/network/azure"
   project  = var.project
   location = var.location
 }
 
 module "compute" {
-  source    = "../../modules/compute/azure"
+  source    = "../../../../modules/compute/azure"
   project   = var.project
   location  = var.location
   subnet_id = module.network.subnet_id
+}
+
+module "static_site" {
+  source              = "../../../../modules/static-website/azure"
+  resource_group_name = module.network.resource_group_name
+  location            = module.network.resource_group_location
+  project             = var.project
+  env                 = "dev"
 }
