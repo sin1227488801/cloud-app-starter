@@ -9,62 +9,80 @@ on:
 permissions:
   contents: read
 
+env:
+  TFSTATE_RG: sre-iac-starter-tfstate-rg
+  TFSTATE_LOC: japaneast
+  TFSTATE_CONTAINER: tfstate
+  TFSTATE_KEY: azure-b1s-mvp.tfstate
+
 jobs:
   deploy-static-site:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Azure Login (Service Principal)
-        uses: azure/login@v2
-        with:
-          client-id:        ${{ secrets.ARM_CLIENT_ID }}
-          tenant-id:        ${{ secrets.ARM_TENANT_ID }}
-          subscription-id:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          client-secret:    ${{ secrets.ARM_CLIENT_SECRET }}
-
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.5
 
-      # remote backend を読むため backend有効の init
-      - name: Terraform init (read remote state)
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId":"${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId":"${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      # backendのSA/Containerが無いと init 失敗するため ensure（冪等）
+      - name: Ensure tfstate backend resources
+        env:
+          TFSTATE_RG: ${{ env.TFSTATE_RG }}
+          TFSTATE_LOC: ${{ env.TFSTATE_LOC }}
+          TFSTATE_CONTAINER: ${{ env.TFSTATE_CONTAINER }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          bash scripts/ci/ensure-tfstate.sh | tee ensure.log
+          SA=$(grep '^TFSTATE_SA=' ensure.log | cut -d= -f2)
+          echo "TFSTATE_SA=$SA" >> $GITHUB_ENV
+
+      - name: Terraform Init (remote backend / read state)
         env:
           ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET:    ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
         run: |
-          set -euo pipefail
-          terraform -chdir=envs/azure/azure-b1s-mvp init
+          terraform -chdir=envs/azure/azure-b1s-mvp init \
+            -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" \
+            -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" \
+            -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" \
+            -backend-config="key=${{ env.TFSTATE_KEY }}"
 
-      - name: Resolve Storage Account from state
+      - name: Resolve outputs
         id: out
         run: |
-          set -euo pipefail
           SA_NAME="$(terraform -chdir=envs/azure/azure-b1s-mvp output -raw storage_account_name)"
-          echo "sa_name=$SA_NAME" >> "$GITHUB_OUTPUT"
+          WEB_URL="$(terraform -chdir=envs/azure/azure-b1s-mvp output -raw static_website_url)"
+          echo "sa_name=$SA_NAME" >> $GITHUB_OUTPUT
+          echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
 
       - name: Upload to $web
         env:
           SA_NAME: ${{ steps.out.outputs.sa_name }}
         run: |
-          set -euo pipefail
-          # 配信ソースの優先順: app-landing > app/dist > app
           SRC_DIR=""
           for d in "app-landing" "app/dist" "app"; do
             if [ -d "$d" ]; then SRC_DIR="$d"; break; fi
           done
           [ -n "$SRC_DIR" ] || SRC_DIR="app"
-
           mkdir -p "$SRC_DIR"
           if [ ! -f "$SRC_DIR/index.html" ]; then
             printf '%s\n' \
               "<!doctype html><meta charset=utf-8><title>SRE IaC Starter</title><h1>SRE IaC Starter</h1><p>Deployed: $(date -u +%FT%TZ)</p>" \
               > "$SRC_DIR/index.html"
           fi
-
           az storage blob upload-batch --account-name "$SA_NAME" -s "$SRC_DIR" -d '$web' --overwrite --auth-mode login
-
-          echo "URL:"
-          az storage account show -n "$SA_NAME" --query "primaryEndpoints.web" -o tsv
+          echo "${{ steps.out.outputs.web_url }}"

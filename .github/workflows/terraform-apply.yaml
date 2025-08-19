@@ -11,6 +11,14 @@ on:
 permissions:
   contents: read
 
+env:
+  TF_IN_AUTOMATION: true
+  TF_INPUT: 0
+  TFSTATE_RG: sre-iac-starter-tfstate-rg
+  TFSTATE_LOC: japaneast
+  TFSTATE_CONTAINER: tfstate
+  TFSTATE_KEY: azure-b1s-mvp.tfstate
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -21,13 +29,59 @@ jobs:
         with:
           terraform_version: 1.9.5
 
-      # PR相当のvalidate（backend無効）
+      # Azure ログイン
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId":"${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId":"${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      # tfstate 用の SA/Container を用意（なければ作成/あれば流用）
+      - name: Ensure tfstate backend resources
+        env:
+          TFSTATE_RG: ${{ env.TFSTATE_RG }}
+          TFSTATE_LOC: ${{ env.TFSTATE_LOC }}
+          TFSTATE_CONTAINER: ${{ env.TFSTATE_CONTAINER }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          bash scripts/ci/ensure-tfstate.sh | tee ensure.log
+          # SA名を拾ってエクスポート
+          SA=$(grep '^TFSTATE_SA=' ensure.log | cut -d= -f2)
+          echo "TFSTATE_SA=$SA" >> $GITHUB_ENV
+
+      # validate（backend=false）
       - name: Terraform Validate (Azure)
         run: |
           terraform -chdir=envs/azure/azure-b1s-mvp init -backend=false
           terraform -chdir=envs/azure/azure-b1s-mvp validate
 
-      # main で apply（SP認証は Secrets から）
+      # backend 付き init（azurerm）
+      - name: Terraform Init (remote backend)
+        env:
+          ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET:    ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          terraform -chdir=envs/azure/azure-b1s-mvp init \
+            -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" \
+            -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" \
+            -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" \
+            -backend-config="key=${{ env.TFSTATE_KEY }}"
+
+      # 既存リソースがあれば import（存在チェックしながら）
+      - name: Terraform Import existing
+        env:
+          ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          bash scripts/ci/try-import-existing.sh
+
+      # apply
       - name: Terraform Apply (Azure)
         env:
           ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
@@ -35,46 +89,23 @@ jobs:
           ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
         run: |
-          set -euo pipefail
-          terraform -chdir=envs/azure/azure-b1s-mvp init
           terraform -chdir=envs/azure/azure-b1s-mvp apply -auto-approve
 
-      # Azure ログイン（このジョブ内で state があるため、この後の output が安定）
-      - name: Azure Login (Service Principal)
-        uses: azure/login@v2
-        with:
-          client-id:        ${{ secrets.ARM_CLIENT_ID }}
-          tenant-id:        ${{ secrets.ARM_TENANT_ID }}
-          subscription-id:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          client-secret:    ${{ secrets.ARM_CLIENT_SECRET }}
-
-      - name: Preflight - Verify Azure Login
-        run: az account show --query '{tenantId:tenantId,subscriptionId:id,user:user.name}' -o table
-
-      # Apply直後のstateからoutput取得→$webへアップロード
-      - name: App Deploy to Azure Static Website
+      # 静的サイトへアップロード
+      - name: Upload to Static Website ($web)
         run: |
-          set -euo pipefail
           SA_NAME="$(terraform -chdir=envs/azure/azure-b1s-mvp output -raw storage_account_name)"
           echo "Storage Account: $SA_NAME"
-
-          # 配信ソースの優先順: app-landing > app/dist > app
           SRC_DIR=""
           for d in "app-landing" "app/dist" "app"; do
             if [ -d "$d" ]; then SRC_DIR="$d"; break; fi
           done
           [ -n "$SRC_DIR" ] || SRC_DIR="app"
-
-          # 最低限のプレースホルダ（無い場合のみ）
           mkdir -p "$SRC_DIR"
           if [ ! -f "$SRC_DIR/index.html" ]; then
             printf '%s\n' \
               "<!doctype html><meta charset=utf-8><title>SRE IaC Starter</title><h1>SRE IaC Starter</h1><p>Deployed: $(date -u +%FT%TZ)</p>" \
               > "$SRC_DIR/index.html"
           fi
-
-          # $web はクォート（リテラル）
           az storage blob upload-batch --account-name "$SA_NAME" -s "$SRC_DIR" -d '$web' --overwrite --auth-mode login
-
-          echo "URL:"
           az storage account show -n "$SA_NAME" --query "primaryEndpoints.web" -o tsv
