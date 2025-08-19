@@ -1,141 +1,70 @@
 name: app-deploy
-
 on:
   push:
     branches: [main]
-    paths: ["app/**"]
-  workflow_dispatch:
+    paths:
+      - "app/**"
+      - "app-landing/**"
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  deploy-static-site:
     runs-on: ubuntu-latest
-    environment: production
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Azure Login (Service Principal)
+        uses: azure/login@v2
+        with:
+          client-id:        ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id:        ${{ secrets.ARM_TENANT_ID }}
+          subscription-id:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-secret:    ${{ secrets.ARM_CLIENT_SECRET }}
+
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.5
-          terraform_wrapper: false
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: |
-            {
-              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
-              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
-              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
-              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
-            }
-
-      - name: Terraform Init
-        run: |
-          cd envs/azure/azure-b1s-mvp
-          terraform init -backend-config=backend.hcl
+      # remote backend を読むため backend有効の init
+      - name: Terraform init (read remote state)
         env:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
-      - name: Get Infrastructure Outputs
-        id: terraform-outputs
+          ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET:    ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
         run: |
-          cd envs/azure/azure-b1s-mvp
-          SA_NAME=$(terraform output -raw storage_account_name)
-          WEBSITE_URL=$(terraform output -raw static_website_url)
-          echo "storage_account_name=$SA_NAME" >> $GITHUB_OUTPUT
-          echo "website_url=$WEBSITE_URL" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          terraform -chdir=envs/azure/azure-b1s-mvp init
+
+      - name: Resolve Storage Account from state
+        id: out
+        run: |
+          set -euo pipefail
+          SA_NAME="$(terraform -chdir=envs/azure/azure-b1s-mvp output -raw storage_account_name)"
+          echo "sa_name=$SA_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to $web
         env:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
-      - name: Generate meta.json
+          SA_NAME: ${{ steps.out.outputs.sa_name }}
         run: |
-          cat > app/meta.json << EOF
-          {
-            "storageAccountName": "${{ steps.terraform-outputs.outputs.storage_account_name }}",
-            "websiteUrl": "${{ steps.terraform-outputs.outputs.website_url }}",
-            "commitSha": "${{ github.sha }}",
-            "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "repositoryUrl": "${{ github.server_url }}/${{ github.repository }}",
-            "workflow": "${{ github.workflow }}",
-            "runId": "${{ github.run_id }}"
-          }
-          EOF
+          set -euo pipefail
+          # 配信ソースの優先順: app-landing > app/dist > app
+          SRC_DIR=""
+          for d in "app-landing" "app/dist" "app"; do
+            if [ -d "$d" ]; then SRC_DIR="$d"; break; fi
+          done
+          [ -n "$SRC_DIR" ] || SRC_DIR="app"
 
-      - name: Deploy to Azure Storage
-        run: |
-          SA_NAME="${{ steps.terraform-outputs.outputs.storage_account_name }}"
-
-          echo "🚀 Deploying app to Azure Storage Account: $SA_NAME"
-
-          # Determine source directory priority: app-landing > app/dist > app
-          if [ -d "app-landing" ]; then
-            SRC_DIR="app-landing"
-            echo "📁 Using app-landing/ (demo landing page)"
-          elif [ -d "app/dist" ]; then
-            SRC_DIR="app/dist"
-            echo "📁 Using app/dist/ (built application)"
-          else
-            SRC_DIR="app"
-            echo "📁 Using app/ (source application)"
+          mkdir -p "$SRC_DIR"
+          if [ ! -f "$SRC_DIR/index.html" ]; then
+            printf '%s\n' \
+              "<!doctype html><meta charset=utf-8><title>SRE IaC Starter</title><h1>SRE IaC Starter</h1><p>Deployed: $(date -u +%FT%TZ)</p>" \
+              > "$SRC_DIR/index.html"
           fi
 
-          # Copy meta.json to source directory if it exists in app/
-          if [ -f "app/meta.json" ] && [ "$SRC_DIR" != "app" ]; then
-            cp app/meta.json "$SRC_DIR/meta.json"
-            echo "📋 Copied meta.json to $SRC_DIR/"
-          fi
+          az storage blob upload-batch --account-name "$SA_NAME" -s "$SRC_DIR" -d '$web' --overwrite --auth-mode login
 
-          az storage blob upload-batch \
-            --account-name "$SA_NAME" \
-            --source "$SRC_DIR" \
-            --destination '$web' \
-            --overwrite \
-            --auth-mode login
-
-          echo "✅ Deploy completed successfully from $SRC_DIR!"
-          echo "🌐 Website URL: ${{ steps.terraform-outputs.outputs.website_url }}"
-
-      - name: Verify Deployment
-        run: |
-          WEBSITE_URL="${{ steps.terraform-outputs.outputs.website_url }}"
-
-          echo "🔍 Verifying deployment..."
-
-          sleep 10
-
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$WEBSITE_URL" || echo "000")
-
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ Website is accessible (HTTP $HTTP_STATUS)"
-          else
-            echo "⚠️  Website returned HTTP $HTTP_STATUS"
-            echo "This might be normal for new deployments (propagation delay)"
-          fi
-
-          echo "🌐 Access your website at: $WEBSITE_URL"
-
-      - name: Summary
-        run: |
-          echo "## 🚀 App Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storage Account**: \`${{ steps.terraform-outputs.outputs.storage_account_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Website URL**: [${{ steps.terraform-outputs.outputs.website_url }}](${{ steps.terraform-outputs.outputs.website_url }})" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployed At**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Visit the website to verify the deployment" >> $GITHUB_STEP_SUMMARY
-          echo "2. Check the deployment status panel on the site" >> $GITHUB_STEP_SUMMARY
-          echo "3. The \`meta.json\` file has been updated with latest deployment info" >> $GITHUB_STEP_SUMMARY
+          echo "URL:"
+          az storage account show -n "$SA_NAME" --query "primaryEndpoints.web" -o tsv

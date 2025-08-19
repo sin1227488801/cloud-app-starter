@@ -5,7 +5,8 @@ on:
     paths:
       - "envs/**"
       - "modules/**"
-      - "app/**"            # ← アプリ変更でも実行
+      - "app/**"
+      - "app-landing/**"
 
 permissions:
   contents: read
@@ -20,25 +21,13 @@ jobs:
         with:
           terraform_version: 1.9.5
 
-      # （任意）Azureクレデンシャルのフォーマット簡易チェック
-      - name: Sanity check Azure creds
-        shell: bash
-        run: |
-          ok(){ echo "OK: $1 format looks valid"; }
-          ng(){ echo "NG: $1 format invalid"; exit 1; }
-          is_guid(){ echo "$1" | grep -Eiq '^[0-9a-f-]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$'; }
-          [ -n "${{ secrets.ARM_CLIENT_SECRET }}" ] || { echo "NG: ARM_CLIENT_SECRET empty"; exit 1; }
-          is_guid "${{ secrets.ARM_CLIENT_ID }}"       && ok ARM_CLIENT_ID       || ng ARM_CLIENT_ID
-          is_guid "${{ secrets.ARM_SUBSCRIPTION_ID }}" && ok ARM_SUBSCRIPTION_ID || ng ARM_SUBSCRIPTION_ID
-          is_guid "${{ secrets.ARM_TENANT_ID }}"       && ok ARM_TENANT_ID       || ng ARM_TENANT_ID
-
-      # PRと同条件で validate（backend 無効）
+      # PR相当のvalidate（backend無効）
       - name: Terraform Validate (Azure)
         run: |
           terraform -chdir=envs/azure/azure-b1s-mvp init -backend=false
           terraform -chdir=envs/azure/azure-b1s-mvp validate
 
-      # mainで apply（SP 認証は Secrets の ARM_* 環境変数で）
+      # main で apply（SP認証は Secrets から）
       - name: Terraform Apply (Azure)
         env:
           ARM_CLIENT_ID:        ${{ secrets.ARM_CLIENT_ID }}
@@ -46,10 +35,11 @@ jobs:
           ARM_SUBSCRIPTION_ID:  ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID:        ${{ secrets.ARM_TENANT_ID }}
         run: |
+          set -euo pipefail
           terraform -chdir=envs/azure/azure-b1s-mvp init
           terraform -chdir=envs/azure/azure-b1s-mvp apply -auto-approve
 
-      # Azure へログイン（以降の az コマンド用）— こちらに統一
+      # Azure ログイン（このジョブ内で state があるため、この後の output が安定）
       - name: Azure Login (Service Principal)
         uses: azure/login@v2
         with:
@@ -61,20 +51,29 @@ jobs:
       - name: Preflight - Verify Azure Login
         run: az account show --query '{tenantId:tenantId,subscriptionId:id,user:user.name}' -o table
 
-      # Apply直後の state から outputs を取得して、そのまま静的Webへデプロイ
+      # Apply直後のstateからoutput取得→$webへアップロード
       - name: App Deploy to Azure Static Website
         run: |
+          set -euo pipefail
           SA_NAME="$(terraform -chdir=envs/azure/azure-b1s-mvp output -raw storage_account_name)"
           echo "Storage Account: $SA_NAME"
 
-          # ビルド成果物が無いときのプレースホルダ
-          SRC_DIR="app/dist"; [ -d "$SRC_DIR" ] || SRC_DIR=app
-          mkdir -p "$SRC_DIR"
-          [ -f "$SRC_DIR/index.html" ] || printf '%s\n' \
-            "<!doctype html><meta charset=utf-8><title>SRE IaC Starter</title><h1>SRE IaC Starter</h1><p>Deployed: $(date -u +%FT%TZ)</p>" \
-            > "$SRC_DIR/index.html"
+          # 配信ソースの優先順: app-landing > app/dist > app
+          SRC_DIR=""
+          for d in "app-landing" "app/dist" "app"; do
+            if [ -d "$d" ]; then SRC_DIR="$d"; break; fi
+          done
+          [ -n "$SRC_DIR" ] || SRC_DIR="app"
 
-          # $web はクォートしてリテラル扱い
+          # 最低限のプレースホルダ（無い場合のみ）
+          mkdir -p "$SRC_DIR"
+          if [ ! -f "$SRC_DIR/index.html" ]; then
+            printf '%s\n' \
+              "<!doctype html><meta charset=utf-8><title>SRE IaC Starter</title><h1>SRE IaC Starter</h1><p>Deployed: $(date -u +%FT%TZ)</p>" \
+              > "$SRC_DIR/index.html"
+          fi
+
+          # $web はクォート（リテラル）
           az storage blob upload-batch --account-name "$SA_NAME" -s "$SRC_DIR" -d '$web' --overwrite --auth-mode login
 
           echo "URL:"
