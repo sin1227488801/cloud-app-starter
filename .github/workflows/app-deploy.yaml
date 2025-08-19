@@ -79,14 +79,32 @@ jobs:
 
           echo "🚀 Deploying app to Azure Storage Account: $SA_NAME"
 
+          # Determine source directory priority: app-landing > app/dist > app
+          if [ -d "app-landing" ]; then
+            SRC_DIR="app-landing"
+            echo "📁 Using app-landing/ (demo landing page)"
+          elif [ -d "app/dist" ]; then
+            SRC_DIR="app/dist"
+            echo "📁 Using app/dist/ (built application)"
+          else
+            SRC_DIR="app"
+            echo "📁 Using app/ (source application)"
+          fi
+
+          # Copy meta.json to source directory if it exists in app/
+          if [ -f "app/meta.json" ] && [ "$SRC_DIR" != "app" ]; then
+            cp app/meta.json "$SRC_DIR/meta.json"
+            echo "📋 Copied meta.json to $SRC_DIR/"
+          fi
+
           az storage blob upload-batch \
             --account-name "$SA_NAME" \
-            --source app \
+            --source "$SRC_DIR" \
             --destination '$web' \
             --overwrite \
             --auth-mode login
 
-          echo "✅ Deploy completed successfully!"
+          echo "✅ Deploy completed successfully from $SRC_DIR!"
           echo "🌐 Website URL: ${{ steps.terraform-outputs.outputs.website_url }}"
 
       - name: Verify Deployment
