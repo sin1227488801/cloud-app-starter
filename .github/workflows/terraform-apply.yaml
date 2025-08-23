@@ -72,8 +72,23 @@ jobs:
       - name: Terraform Import existing
         env:
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
+          echo "Starting import process..."
           bash scripts/ci/try-import-existing.sh
+          echo "Import process completed"
+
+      - name: Terraform Plan (after import)
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          echo "Running plan to verify import results..."
+          terraform -chdir=envs/azure/azure-b1s-mvp plan -no-color
 
       - name: Terraform Apply (Azure)
         env:
@@ -82,6 +97,7 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
+          echo "Applying Terraform configuration..."
           terraform -chdir=envs/azure/azure-b1s-mvp apply -auto-approve
 
       - name: Upload to Static Website ($web)
