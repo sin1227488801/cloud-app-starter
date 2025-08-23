@@ -19,7 +19,7 @@ check_env() {
             missing+=("$var")
         fi
     done
-    
+
     if [[ ${#missing[@]} -gt 0 ]]; then
         error "Missing required environment variables: ${missing[*]}"
     fi
@@ -46,7 +46,7 @@ check_commands() {
             missing+=("$cmd")
         fi
     done
-    
+
     if [[ ${#missing[@]} -gt 0 ]]; then
         error "Missing required commands: ${missing[*]}"
     fi
@@ -138,7 +138,7 @@ if [[ ! -f "$WF" ]]; then
             break
         fi
     done
-    
+
     if [[ ! -f "$WF" ]]; then
         error "Workflow file not found. Checked: app-deploy.yaml, app-deploy.yml, deploy.yaml, deploy.yml"
     fi
@@ -156,20 +156,20 @@ create_robust_outputs_step() {
           TF_DIR: envs/azure/azure-b1s-mvp
         run: |
           set -uo pipefail
-          
+
           # Terraformのoutputを安全に取得
           if ! JSON=$(terraform -chdir="$TF_DIR" output -json 2>/dev/null); then
             echo "No terraform outputs available"
             JSON='{}'
           fi
-          
+
           # Pythonで安全にパース
           python3 << 'PYCODE'
 import json, sys, os
 
 try:
     j = json.loads(os.environ.get('JSON', '{}'))
-    
+
     def get_value(key):
         try:
             v = j.get(key)
@@ -178,19 +178,19 @@ try:
             return v
         except:
             return None
-    
+
     sa_name = get_value('storage_account_name')
     web_url = get_value('static_website_url')
-    
+
     # GitHub Outputsに安全に書き込み
     with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
         if sa_name:
             f.write(f"sa_name={sa_name}\n")
         if web_url:
             f.write(f"web_url={web_url}\n")
-            
+
     print(f"Set outputs: sa_name={sa_name}, web_url={web_url}")
-    
+
 except Exception as e:
     print(f"Error processing outputs: {e}")
     # デフォルト値を設定
@@ -255,7 +255,7 @@ BEGIN { in_step = 0; replaced = 0 }
         print "        f.write(\"sa_name=\\n\")"
         print "        f.write(\"web_url=\\n\")"
         print "PYCODE"
-        
+
         in_step = 1
         replaced = 1
         next
@@ -331,7 +331,7 @@ log "Importing existing Azure resources..."
 get_resource_id() {
     local cmd="$1"
     local resource_name="$2"
-    
+
     if id=$(eval "$cmd" 2>/dev/null); then
         echo "$id"
     else
@@ -349,7 +349,7 @@ import_resource() {
     local resource_address="$1"
     local resource_id="$2"
     local resource_name="$3"
-    
+
     if [[ -n "$resource_id" ]]; then
         log "Importing $resource_name..."
         terraform -chdir="$TF_DIR" import "$resource_address" "$resource_id" || warn "Import failed for $resource_name"
@@ -377,7 +377,7 @@ fi
 rerun_workflow() {
     local workflow_name="$1"
     log "Rerunning $workflow_name workflow..."
-    
+
     if RUN_ID=$(gh run list --repo "$REPO_FULL" --workflow "$workflow_name" --limit 1 --json databaseId -q '.[0].databaseId' 2>/dev/null); then
         if [[ -n "$RUN_ID" ]]; then
             gh run rerun --repo "$REPO_FULL" "$RUN_ID" || warn "Failed to rerun $workflow_name"
