@@ -142,4 +142,4 @@ pre-commit run --all-files
 - **Testing**: Terratest導入
 - **Environments**: staging/production分離
 
-**🎯 デモサイト**: [https://sreiacdevm627ymaf.z11.web.core.windows.net/](https://sreiacdevm627ymaf.z11.web.core.windows.net/)
+**🎯 デモサイト**: [https://sreiacdevohgqvfjy.z11.web.core.windows.net/](https://sreiacdevohgqvfjy.z11.web.core.windows.net/)
