@@ -45,17 +45,24 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
           echo "Ensuring tfstate backend resources..."
-          bash scripts/ci/ensure-tfstate.sh | tee ensure.log
           
-          # Storage Account名を取得
-          SA=$(grep '^TFSTATE_SA=' ensure.log | cut -d= -f2)
-          if [ -z "$SA" ]; then
-            echo "Error: Failed to get storage account name"
+          # ensure-tfstate.shを実行
+          if ! bash scripts/ci/ensure-tfstate.sh | tee ensure.log; then
+            echo "Error: ensure-tfstate.sh failed"
             cat ensure.log
             exit 1
           fi
           
-          echo "Storage Account: $SA"
+          # Storage Account名を取得
+          SA=$(grep '^TFSTATE_SA=' ensure.log | cut -d= -f2)
+          if [ -z "$SA" ]; then
+            echo "Error: Failed to get storage account name from output"
+            echo "ensure.log contents:"
+            cat ensure.log
+            exit 1
+          fi
+          
+          echo "✅ Storage Account configured: $SA"
           echo "TFSTATE_SA=$SA" >> $GITHUB_ENV
 
       - name: Debug backend configuration

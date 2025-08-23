@@ -24,16 +24,26 @@ EX_SA=$(az storage account list \
   --query "[?tags.purpose=='tfstate'].name | [0]" -o tsv)
 
 if [ -z "$EX_SA" ]; then
-  # 新規作成 - ランダムサフィックスを生成
+  # 新規作成 - ランダムサフィックスを生成（24文字制限に注意）
   if [ -z "$TFSTATE_SA" ]; then
-    RANDOM_SUFFIX=$(date +%s | tail -c 6)$(shuf -i 100-999 -n 1 2>/dev/null || echo $((RANDOM % 900 + 100)))
-    TFSTATE_SA="sreiacstate${RANDOM_SUFFIX}"
+    # 短いプレフィックス + 8文字のランダム = 最大16文字
+    RANDOM_SUFFIX=$(date +%s | tail -c 4)$(shuf -i 1000-9999 -n 1 2>/dev/null || echo $((RANDOM % 9000 + 1000)))
+    TFSTATE_SA="sreiac${RANDOM_SUFFIX}"
+  fi
+  
+  # 24文字制限チェック
+  if [ ${#TFSTATE_SA} -gt 24 ]; then
+    echo "Error: Storage account name too long: $TFSTATE_SA (${#TFSTATE_SA} chars)"
+    exit 1
   fi
   
   echo "Creating new storage account: $TFSTATE_SA"
-  az storage account create -g "$TFSTATE_RG" -n "$TFSTATE_SA" -l "$TFSTATE_LOC" \
+  if ! az storage account create -g "$TFSTATE_RG" -n "$TFSTATE_SA" -l "$TFSTATE_LOC" \
     --sku Standard_LRS --kind StorageV2 \
-    --tags project=sre-iac-starter purpose=tfstate >/dev/null
+    --tags project=sre-iac-starter purpose=tfstate >/dev/null; then
+    echo "Error: Failed to create storage account $TFSTATE_SA"
+    exit 1
+  fi
   SA="$TFSTATE_SA"
 else
   echo "Using existing storage account: $EX_SA"
