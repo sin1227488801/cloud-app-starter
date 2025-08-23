@@ -132,57 +132,61 @@ jobs:
           echo "web_url=$WEB_URL" >> "$GITHUB_OUTPUT"
           echo "Final outputs set: sa_name=$SA_NAME, web_url=$WEB_URL"
 
-      - name: Upload to Static Website
+      - name: Deploy to Static Website (with key auth)
         env:
           SA_NAME: ${{ steps.out.outputs.sa_name }}
           WEB_URL: ${{ steps.out.outputs.web_url }}
         run: |
+          echo "=== Starting deployment process ==="
+          echo "SA_NAME: $SA_NAME"
+          echo "WEB_URL: $WEB_URL"
+
           if [ -z "$SA_NAME" ]; then
-            echo "No storage account name available."
+            echo "❌ No storage account name available."
             echo "Please run the terraform-apply workflow first."
             exit 1
           fi
 
-          echo "Uploading to storage account: $SA_NAME"
+          echo "✅ Storage account found: $SA_NAME"
 
           # ソースディレクトリを決定
           SRC_DIR=""
           for d in "app-landing" "app/dist" "app"; do
             if [ -d "$d" ]; then
               SRC_DIR="$d"
-              echo "Using source directory: $SRC_DIR"
+              echo "📁 Using source directory: $SRC_DIR"
               break
             fi
           done
 
           if [ -z "$SRC_DIR" ]; then
             SRC_DIR="app"
-            echo "Creating default directory: $SRC_DIR"
+            echo "📁 Creating default directory: $SRC_DIR"
             mkdir -p "$SRC_DIR"
           fi
 
           # デフォルトのindex.htmlを作成（存在しない場合）
           if [ ! -f "$SRC_DIR/index.html" ]; then
-            echo "Creating default index.html"
-            printf '%s\n' \
-              '<!doctype html>' \
-              '<html lang="ja">' \
-              '<head>' \
-              '  <meta charset="utf-8">' \
-              '  <title>SRE IaC Starter</title>' \
-              '  <meta name="viewport" content="width=device-width, initial-scale=1.0">' \
-              '</head>' \
-              '<body>' \
-              '  <h1>SRE IaC Starter</h1>' \
-              "  <p>Deployed: $(date -u +'%Y-%m-%d %H:%M:%S UTC')</p>" \
-              "  <p>Storage Account: \$SA_NAME</p>" \
-              '</body>' \
-              '</html>' \
-              > "$SRC_DIR/index.html"
+            echo "📝 Creating default index.html"
+            cat > "$SRC_DIR/index.html" << 'EOF'
+          <!doctype html>
+          <html lang="ja">
+          <head>
+            <meta charset="utf-8">
+            <title>SRE IaC Starter</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body>
+            <h1>SRE IaC Starter</h1>
+            <p>Deployed: $(date -u +'%Y-%m-%d %H:%M:%S UTC')</p>
+            <p>Storage Account: $SA_NAME</p>
+          </body>
+          </html>
+          EOF
           fi
 
           # ストレージアカウントキーを取得
-          echo "Getting storage account key..."
+          echo "🔑 Getting storage account key..."
           STORAGE_KEY=$(az storage account keys list \
             --account-name "$SA_NAME" \
             --resource-group "sre-iac-starter-rg" \
@@ -190,25 +194,30 @@ jobs:
             -o tsv)
 
           if [ -z "$STORAGE_KEY" ]; then
-            echo "Failed to get storage account key"
+            echo "❌ Failed to get storage account key"
             exit 1
           fi
 
+          echo "✅ Storage key obtained successfully"
+
           # ファイルをアップロード
-          echo "Uploading files to web container..."
+          echo "📤 Uploading files to \$web container..."
+          
+          # 環境変数でストレージ認証情報を設定
+          export AZURE_STORAGE_ACCOUNT="$SA_NAME"
+          export AZURE_STORAGE_KEY="$STORAGE_KEY"
+          
           if az storage blob upload-batch \
-            --account-name "$SA_NAME" \
-            --account-key "$STORAGE_KEY" \
             --source "$SRC_DIR" \
             --destination '$web' \
             --overwrite; then
-            echo "Upload successful!"
+            echo "✅ Upload successful!"
             if [ -n "$WEB_URL" ]; then
-              echo "Website URL: $WEB_URL"
+              echo "🌐 Website URL: $WEB_URL"
             else
-              echo "Website should be available at: https://$SA_NAME.z11.web.core.windows.net/"
+              echo "🌐 Website should be available at: https://$SA_NAME.z11.web.core.windows.net/"
             fi
           else
-            echo "Upload failed!"
+            echo "❌ Upload failed!"
             exit 1
           fi
