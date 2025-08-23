@@ -4,7 +4,7 @@ set -euo pipefail
 # Inputs (env)
 : "${TFSTATE_RG:=sre-iac-starter-tfstate-rg}"
 : "${TFSTATE_LOC:=japaneast}"
-: "${TFSTATE_SA:=sreiacstatestore$RANDOM$RANDOM}"  # 初回のみ実使用。既存あれば上書きしない
+: "${TFSTATE_SA:=}"  # 初回のみ実使用。既存あれば上書きしない
 : "${TFSTATE_CONTAINER:=tfstate}"
 : "${ARM_SUBSCRIPTION_ID:?}"
 # ここでは az login は済として扱う（ワークフローで azure/login 実施後に呼ぶ）
@@ -24,12 +24,19 @@ EX_SA=$(az storage account list \
   --query "[?tags.purpose=='tfstate'].name | [0]" -o tsv)
 
 if [ -z "$EX_SA" ]; then
-  # 新規作成
+  # 新規作成 - ランダムサフィックスを生成
+  if [ -z "$TFSTATE_SA" ]; then
+    RANDOM_SUFFIX=$(date +%s | tail -c 6)$(shuf -i 100-999 -n 1 2>/dev/null || echo $((RANDOM % 900 + 100)))
+    TFSTATE_SA="sreiacstate${RANDOM_SUFFIX}"
+  fi
+  
+  echo "Creating new storage account: $TFSTATE_SA"
   az storage account create -g "$TFSTATE_RG" -n "$TFSTATE_SA" -l "$TFSTATE_LOC" \
     --sku Standard_LRS --kind StorageV2 \
     --tags project=sre-iac-starter purpose=tfstate >/dev/null
   SA="$TFSTATE_SA"
 else
+  echo "Using existing storage account: $EX_SA"
   SA="$EX_SA"
 fi
 
