@@ -137,9 +137,9 @@ jobs:
 
           echo "✅ Storage account found: $SA_NAME"
 
-          # ソースディレクトリを決定
+          # ソースディレクトリを決定（appを優先）
           SRC_DIR=""
-          for d in "app-landing" "app/dist" "app"; do
+          for d in "app" "app/dist" "app-landing"; do
             if [ -d "$d" ]; then
               SRC_DIR="$d"
               echo "📁 Using source directory: $SRC_DIR"
