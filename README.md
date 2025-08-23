@@ -1,48 +1,48 @@
-# SRE IaC Starter
+# 🚀 SRE IaC Starter - ワンクリックWebサイト作成ツール
 
-Azure/AWSマルチクラウド対応のTerraform IaCスターターキット
+**プログラミング初心者でもOK！** ブラウザだけで美しいWebサイトを5分で作成・公開できます。
 
-## 🎯 現在の状況
+## ✨ 何ができる？
 
-✅ **完了済み**
-- Terraformモジュール構成（network, compute, static-website）
-- GitHub Actions CI/CDパイプライン
-- Azure Static Website自動デプロイ
-- リモートステート管理（Azure Storage）
+- 🌐 **プロ級Webサイト**: 美しいデザインのサイトを自動生成
+- ⚡ **5分で公開**: 面倒な設定不要、ワンクリックで世界に公開
+- 💰 **ほぼ無料**: 月数円程度、使わない時は完全無料
+- 🗑️ **簡単削除**: 不要になったら1クリックで完全削除
+- 📱 **どこでも**: Windows/Mac/Linux/スマホ対応
 
-🔧 **修正済み**
-- Terraformバックエンド設定の有効化
-- ワークフローのoutput取得処理の簡素化
-- デプロイ用HTMLファイルの作成
+## 🎯 デモサイト
 
-## 🚀 次のステップ
+**実際に作成されるサイト**: https://sreiacdevohgqvfjy.z11.web.core.windows.net/
 
-### 1. GitHubシークレットの設定確認
+## 🚀 今すぐ始める
 
-```bash
-# シークレット確認
-bash scripts/check-secrets.sh
+| 対象者 | ガイド | 所要時間 | 内容 |
+|--------|--------|----------|------|
+| 🔰 **完全初心者** | **[📚 完全ガイド](docs/beginner-guide.md)** | 30分 | アカウント作成から詳細解説 |
+| ⚡ **経験者** | **[🚀 クイックスタート](docs/quick-start.md)** | 5分 | 最速でサイト公開 |
+| 📱 **今すぐ試したい** | **[⚡ QUICKSTART](QUICKSTART.md)** | 1分 | 超簡潔な手順 |
+| 🔧 **開発者** | **👇 技術詳細** | - | アーキテクチャと設定 |
+
+---
+
+## 🎯 技術詳細（開発者向け）
+
+### ✅ 実装済み機能
+- **Infrastructure as Code**: Terraformによる完全自動化
+- **CI/CD Pipeline**: GitHub Actionsによる自動デプロイ
+- **Multi-Cloud対応**: Azure/AWS両対応
+- **セキュリティ**: Service Principal認証
+- **モニタリング**: リアルタイム状況表示
+- **ワンクリック削除**: 安全な削除システム
+
+### 🏗️ アーキテクチャ
+```
+GitHub → Actions → Terraform → Azure Storage → Static Website
+   ↓        ↓         ↓            ↓              ↓
+コード変更 → 自動検知 → インフラ更新 → ファイル配置 → サイト公開
 ```
 
-必要なシークレット:
-- `ARM_CLIENT_ID`
-- `ARM_CLIENT_SECRET` 
-- `ARM_SUBSCRIPTION_ID`
-- `ARM_TENANT_ID`
-
-### 2. 手動でのTerraform状態確認
-
-```bash
-# 既存リソースのインポート確認
-bash scripts/manual-import.sh
-```
-
-### 3. GitHub Actionsの実行
-
-1. `terraform-apply` ワークフローを実行
-2. `app-deploy` ワークフローを実行
-
-## 📁 プロジェクト構成
+### 🛠️ 開発者向けローカル環境
 
 ```bash
 # 1. リポジトリクローン
@@ -53,17 +53,12 @@ cd sre-iac-starter
 cp .env.example .env
 # .envを編集して実際の認証情報を設定
 
-# 3. インフラ構築
-make up-azure
+# 3. ワンクリックデプロイ
+make up-azure     # インフラ構築
+make url-azure    # URL確認
 
-# 4. アプリデプロイ
-make app-deploy
-
-# 5. URL確認
-make url-azure
-
-# 6. リソース削除（必要時）
-make down-azure
+# 4. ワンクリック削除
+make down-azure   # 完全削除
 ```
 
 ### 🎯 デモの見方
