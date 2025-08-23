@@ -1,0 +1,27 @@
+name: debug-azure-login
+on: [workflow_dispatch]
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (debug)
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId":"${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId":"${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Show account & SP info
+        run: |
+          az account show
+          az ad sp show --id "${{ secrets.ARM_CLIENT_ID }}"
+        env:
+          AZURE_HTTP_USER_AGENT: "sre-iac-debug"
