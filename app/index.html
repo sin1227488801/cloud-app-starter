@@ -2,57 +2,210 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>SRE IaC Starter</title>
+  <title>SRE IaC Starter - Dynamic Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      line-height: 1.6;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .status {
-      background: #f0f8ff;
-      padding: 1rem;
-      border-radius: 8px;
-      margin: 1rem 0;
-    }
-    .success {
-      background: #f0fff0;
-      border-left: 4px solid #28a745;
-    }
-  </style>
+  <meta name="description" content="Dynamic Infrastructure as Code dashboard with real-time deployment status">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
 </head>
 <body>
-  <div class="header">
-    <h1>🚀 SRE IaC Starter</h1>
-    <p>Infrastructure as Code with Azure & Terraform</p>
-  </div>
-  
-  <div class="status success">
-    <h2>✅ デプロイ成功</h2>
-    <p><strong>デプロイ日時:</strong> <span id="deploy-time"></span></p>
-    <p><strong>環境:</strong> Azure Static Website</p>
-    <p><strong>ステータス:</strong> 正常稼働中</p>
-  </div>
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="icon">🚀</span>
+          SRE IaC Starter
+        </h1>
+        <p class="hero-subtitle">Dynamic Infrastructure Dashboard</p>
+        <p class="hero-description">
+          リアルタイム更新される動的ダッシュボード<br>
+          Azure × Terraform × GitHub Actions
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="loadDeploymentMeta()">
+            🔄 Refresh Status
+          </button>
+          <a href="https://github.com/sin1227488801/sre-iac-starter" target="_blank" class="btn btn-secondary">
+            📚 View Source
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
 
-  <div class="status">
-    <h3>📋 システム情報</h3>
-    <ul>
-      <li>プラットフォーム: Azure Storage Static Website</li>
-      <li>CI/CD: GitHub Actions</li>
-      <li>IaC: Terraform</li>
-      <li>リージョン: Japan East</li>
-    </ul>
-  </div>
+  <main class="container">
+    <!-- Phase Progress -->
+    <section class="section">
+      <h2 class="section-title">📊 デプロイメント状況</h2>
+      <div class="phase-grid">
+        <div class="phase-card completed">
+          <div class="phase-header">
+            <div class="phase-badge success">✅</div>
+            <h3 class="phase-title">Infrastructure</h3>
+          </div>
+          <p class="phase-desc">Terraform による Azure リソースの作成・管理</p>
+        </div>
 
-  <script>
-    document.getElementById('deploy-time').textContent = new Date().toLocaleString('ja-JP');
-  </script>
+        <div class="phase-card completed">
+          <div class="phase-header">
+            <div class="phase-badge success">✅</div>
+            <h3 class="phase-title">CI/CD Pipeline</h3>
+          </div>
+          <p class="phase-desc">GitHub Actions による自動デプロイメント</p>
+        </div>
+
+        <div class="phase-card completed">
+          <div class="phase-header">
+            <div class="phase-badge working">🔄</div>
+            <h3 class="phase-title">Dynamic Updates</h3>
+          </div>
+          <p class="phase-desc">リアルタイムでの状況更新とメタデータ取得</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Overview -->
+    <section class="section">
+      <h2 class="section-title">🏗️ アーキテクチャ</h2>
+      <div class="architecture">
+        <svg viewBox="0 0 800 200" class="arch-diagram">
+          <!-- Developer -->
+          <g class="arch-node">
+            <rect x="20" y="70" width="100" height="60" rx="12" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+            <text x="70" y="90" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="bold">👨‍💻</text>
+            <text x="70" y="105" text-anchor="middle" fill="#e2e8f0" font-size="10">Developer</text>
+            <text x="70" y="120" text-anchor="middle" fill="#94a3b8" font-size="8">git push</text>
+          </g>
+
+          <!-- Arrow 1 -->
+          <path d="M 130 100 L 170 100" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+          <!-- GitHub Actions -->
+          <g class="arch-node">
+            <rect x="180" y="70" width="120" height="60" rx="12" fill="#1e293b" stroke="#8b5cf6" stroke-width="2"/>
+            <text x="240" y="90" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="bold">⚙️</text>
+            <text x="240" y="105" text-anchor="middle" fill="#e2e8f0" font-size="10">GitHub Actions</text>
+            <text x="240" y="120" text-anchor="middle" fill="#94a3b8" font-size="8">CI/CD</text>
+          </g>
+
+          <!-- Arrow 2 -->
+          <path d="M 310 100 L 350 100" stroke="#8b5cf6" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+          <!-- Terraform -->
+          <g class="arch-node">
+            <rect x="360" y="70" width="100" height="60" rx="12" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+            <text x="410" y="90" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="bold">🏗️</text>
+            <text x="410" y="105" text-anchor="middle" fill="#e2e8f0" font-size="10">Terraform</text>
+            <text x="410" y="120" text-anchor="middle" fill="#94a3b8" font-size="8">IaC</text>
+          </g>
+
+          <!-- Arrow 3 -->
+          <path d="M 470 100 L 510 100" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+          <!-- Azure -->
+          <g class="arch-node">
+            <rect x="520" y="70" width="120" height="60" rx="12" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>
+            <text x="580" y="90" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="bold">☁️</text>
+            <text x="580" y="105" text-anchor="middle" fill="#e2e8f0" font-size="10">Azure Storage</text>
+            <text x="580" y="120" text-anchor="middle" fill="#94a3b8" font-size="8">Static Site</text>
+          </g>
+
+          <!-- Arrow 4 -->
+          <path d="M 650 100 L 690 100" stroke="#06b6d4" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+          <!-- Users -->
+          <g class="arch-node">
+            <rect x="700" y="70" width="80" height="60" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+            <text x="740" y="90" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="bold">🌐</text>
+            <text x="740" y="105" text-anchor="middle" fill="#e2e8f0" font-size="10">Users</text>
+            <text x="740" y="120" text-anchor="middle" fill="#94a3b8" font-size="8">Live</text>
+          </g>
+
+          <!-- Arrow marker definition -->
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Deploy Status -->
+    <section class="section">
+      <h2 class="section-title">📊 リアルタイム状況</h2>
+      <div class="deploy-status">
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="status-label">🌐 Website URL</span>
+            <a href="#" id="website-url" target="_blank" rel="noopener" class="status-value status-link">Loading...</a>
+          </div>
+
+          <div class="status-item">
+            <span class="status-label">💾 Storage Account</span>
+            <span class="status-value" id="storage-account">Loading...</span>
+          </div>
+
+          <div class="status-item">
+            <span class="status-label">⏰ 最終デプロイ</span>
+            <span class="status-value" id="deploy-time">Loading...</span>
+          </div>
+
+          <div class="status-item">
+            <span class="status-label">🔗 Git SHA</span>
+            <span class="status-value" id="git-sha">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Commands -->
+    <section class="section">
+      <h2 class="section-title">🛠️ 便利なコマンド</h2>
+      <div class="commands-grid">
+        <div class="command-card">
+          <h3>🔍 ストレージアカウント確認</h3>
+          <div class="code-block">
+            <code>az storage account list --resource-group sre-iac-starter-rg</code>
+            <button class="copy-btn" onclick="copyToClipboard('az storage account list --resource-group sre-iac-starter-rg')">Copy</button>
+          </div>
+        </div>
+
+        <div class="command-card">
+          <h3>🚀 手動デプロイ</h3>
+          <div class="code-block">
+            <code>bash scripts/manual-import.sh</code>
+            <button class="copy-btn" onclick="copyToClipboard('bash scripts/manual-import.sh')">Copy</button>
+          </div>
+        </div>
+
+        <div class="command-card">
+          <h3>🔐 シークレット確認</h3>
+          <div class="code-block">
+            <code>bash scripts/check-secrets.sh</code>
+            <button class="copy-btn" onclick="copyToClipboard('bash scripts/check-secrets.sh')">Copy</button>
+          </div>
+        </div>
+
+        <div class="command-card">
+          <h3>📋 Terraform状態確認</h3>
+          <div class="code-block">
+            <code>terraform -chdir=envs/azure/azure-b1s-mvp state list</code>
+            <button class="copy-btn" onclick="copyToClipboard('terraform -chdir=envs/azure/azure-b1s-mvp state list')">Copy</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 SRE IaC Starter - Dynamic Dashboard</p>
+      <p>Built with ❤️ and real-time updates</p>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
 </body>
 </html>
