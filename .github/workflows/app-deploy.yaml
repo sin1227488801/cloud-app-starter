@@ -73,19 +73,16 @@ jobs:
           echo "  TFSTATE_CONTAINER: ${{ env.TFSTATE_CONTAINER }}"
           echo "  TFSTATE_KEY: ${{ env.TFSTATE_KEY }}"
 
-      - name: Terraform Init (remote backend / read state)
+      - name: Terraform Init (local backend for now)
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
-          echo "Initializing Terraform with backend configuration..."
-          terraform -chdir=envs/azure/azure-b1s-mvp init \
-            -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" \
-            -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" \
-            -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" \
-            -backend-config="key=${{ env.TFSTATE_KEY }}"
+          echo "Initializing Terraform with local backend..."
+          # ローカルバックエンドで初期化（リモートバックエンドは後で実装）
+          terraform -chdir=envs/azure/azure-b1s-mvp init
 
       - name: Resolve outputs (robust)
         id: out
@@ -100,48 +97,40 @@ jobs:
 
           echo "Checking Terraform state and outputs..."
 
-          # Terraformのstateを確認
-          if ! terraform -chdir="$TF_DIR" state list >/dev/null 2>&1; then
-            echo "No Terraform state found."
-            echo "sa_name=" >> "$GITHUB_OUTPUT"
-            echo "web_url=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # まずAzure CLIでストレージアカウントを検索
+          RG_NAME="sre-iac-starter-rg"
+          echo "Searching for storage account in resource group: $RG_NAME"
 
-          # outputを安全に取得
-          if terraform -chdir="$TF_DIR" output -json >/dev/null 2>&1; then
-            echo "Terraform outputs found, processing..."
+          SA_NAME=$(az storage account list --resource-group "$RG_NAME" \
+            --query "[?contains(name, 'sreiac')].name | [0]" \
+            -o tsv 2>/dev/null || echo "")
 
-            # Storage Account名を取得
-            SA_NAME=$(terraform -chdir="$TF_DIR" output \
-              -raw storage_account_name 2>/dev/null || echo "")
-            WEB_URL=$(terraform -chdir="$TF_DIR" output \
-              -raw static_website_url 2>/dev/null || echo "")
-
-            echo "sa_name=$SA_NAME" >> "$GITHUB_OUTPUT"
-            echo "web_url=$WEB_URL" >> "$GITHUB_OUTPUT"
-            echo "Outputs set: sa_name=$SA_NAME, web_url=$WEB_URL"
-          else
-            echo "No outputs available, using fallback method..."
-            RG_NAME="sre-iac-starter-rg"
-
-            SA_NAME=$(az storage account list --resource-group "$RG_NAME" \
-              --query "[?contains(name, 'sreiac')].name | [0]" \
+          if [ -n "$SA_NAME" ]; then
+            WEB_URL=$(az storage account show -n "$SA_NAME" \
+              -g "$RG_NAME" --query "primaryEndpoints.web" \
               -o tsv 2>/dev/null || echo "")
-
-            if [ -n "$SA_NAME" ]; then
-              WEB_URL=$(az storage account show -n "$SA_NAME" \
-                -g "$RG_NAME" --query "primaryEndpoints.web" \
-                -o tsv 2>/dev/null || echo "")
-              echo "Found storage account via Azure CLI: $SA_NAME"
+            echo "Found storage account via Azure CLI: $SA_NAME"
+            echo "Website URL: $WEB_URL"
+          else
+            echo "No storage account found in resource group"
+            # Terraformのoutputを試す
+            if terraform -chdir="$TF_DIR" state list >/dev/null 2>&1; then
+              echo "Terraform state found, trying outputs..."
+              SA_NAME=$(terraform -chdir="$TF_DIR" output \
+                -raw storage_account_name 2>/dev/null || echo "")
+              WEB_URL=$(terraform -chdir="$TF_DIR" output \
+                -raw static_website_url 2>/dev/null || echo "")
+              echo "Terraform outputs: sa_name=$SA_NAME, web_url=$WEB_URL"
             else
-              echo "No storage account found, using empty values"
+              echo "No Terraform state found either"
+              SA_NAME=""
               WEB_URL=""
             fi
-
-            echo "sa_name=$SA_NAME" >> "$GITHUB_OUTPUT"
-            echo "web_url=$WEB_URL" >> "$GITHUB_OUTPUT"
           fi
+
+          echo "sa_name=$SA_NAME" >> "$GITHUB_OUTPUT"
+          echo "web_url=$WEB_URL" >> "$GITHUB_OUTPUT"
+          echo "Final outputs set: sa_name=$SA_NAME, web_url=$WEB_URL"
 
       - name: Upload to Static Website
         env:
