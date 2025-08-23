@@ -1,208 +1,58 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRE IaC Starter - Terraform × Azure CI/CD</title>
-    <meta name="description" content="Infrastructure as Code starter with Terraform, Azure, and GitHub Actions">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+  <meta charset="utf-8">
+  <title>SRE IaC Starter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .status {
+      background: #f0f8ff;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    .success {
+      background: #f0fff0;
+      border-left: 4px solid #28a745;
+    }
+  </style>
 </head>
 <body>
-    <!-- Hero Section -->
-    <header class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="hero-title">
-                    <span class="icon">🚀</span>
-                    SRE IaC Starter
-                </h1>
-                <p class="hero-subtitle">Terraform × Azure CI/CD</p>
-                <p class="hero-description">
-                    SRE IaC Starterの技術デモンストレーション<br>
-                    Infrastructure as Code × CI/CD 自動化
-                </p>
-                <div class="hero-actions">
-                    <a href="https://github.com/sin1227488801/sre-iac-starter" class="btn btn-primary" target="_blank" rel="noopener">
-                        📖 Open Docs
-                    </a>
-                    <button class="btn btn-secondary" onclick="scrollToSection('deploy')">
-                        🚀 Deploy App
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
+  <div class="header">
+    <h1>🚀 SRE IaC Starter</h1>
+    <p>Infrastructure as Code with Azure & Terraform</p>
+  </div>
+  
+  <div class="status success">
+    <h2>✅ デプロイ成功</h2>
+    <p><strong>デプロイ日時:</strong> <span id="deploy-time"></span></p>
+    <p><strong>環境:</strong> Azure Static Website</p>
+    <p><strong>ステータス:</strong> 正常稼働中</p>
+  </div>
 
-    <main class="container">
-        <!-- Phase Progress -->
-        <section class="section">
-            <h2 class="section-title">📊 フェーズ進捗</h2>
-            <div class="phase-grid">
-                <div class="phase-card completed">
-                    <div class="phase-header">
-                        <span class="phase-badge success">✅</span>
-                        <h3>Phase 1</h3>
-                    </div>
-                    <p class="phase-title">Pre-commit / Lint</p>
-                    <p class="phase-desc">コード品質自動化、Terraform検証</p>
-                </div>
+  <div class="status">
+    <h3>📋 システム情報</h3>
+    <ul>
+      <li>プラットフォーム: Azure Storage Static Website</li>
+      <li>CI/CD: GitHub Actions</li>
+      <li>IaC: Terraform</li>
+      <li>リージョン: Japan East</li>
+    </ul>
+  </div>
 
-                <div class="phase-card completed">
-                    <div class="phase-header">
-                        <span class="phase-badge success">✅</span>
-                        <h3>Phase 2</h3>
-                    </div>
-                    <p class="phase-title">Infra構築 & 静的サイト</p>
-                    <p class="phase-desc">Azure Static Website、ワンクリックデプロイ</p>
-                </div>
-
-                <div class="phase-card active">
-                    <div class="phase-header">
-                        <span class="phase-badge working">🔄</span>
-                        <h3>Phase 3</h3>
-                    </div>
-                    <p class="phase-title">CI/CD パイプライン</p>
-                    <p class="phase-desc">GitHub Actions、自動デプロイ</p>
-                </div>
-
-                <div class="phase-card">
-                    <div class="phase-header">
-                        <span class="phase-badge pending">⏳</span>
-                        <h3>Phase 4</h3>
-                    </div>
-                    <p class="phase-title">運用 / 最適化</p>
-                    <p class="phase-desc">監視、カスタムドメイン、CDN</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Architecture Overview -->
-        <section class="section">
-            <h2 class="section-title">🏗️ アーキテクチャ概要</h2>
-            <div class="architecture">
-                <svg viewBox="0 0 800 300" class="arch-diagram">
-                    <!-- Developer -->
-                    <g class="arch-node">
-                        <rect x="20" y="120" width="100" height="60" rx="8" fill="var(--color-primary)" opacity="0.1" stroke="var(--color-primary)" stroke-width="2"/>
-                        <text x="70" y="140" text-anchor="middle" fill="var(--color-text)" font-size="12" font-weight="bold">👨‍💻</text>
-                        <text x="70" y="155" text-anchor="middle" fill="var(--color-text)" font-size="11">Developer</text>
-                        <text x="70" y="170" text-anchor="middle" fill="var(--color-text-secondary)" font-size="10">git push</text>
-                    </g>
-
-                    <!-- Arrow 1 -->
-                    <path d="M 130 150 L 180 150" stroke="var(--color-primary)" stroke-width="2" marker-end="url(#arrowhead)"/>
-
-                    <!-- GitHub Actions -->
-                    <g class="arch-node">
-                        <rect x="190" y="120" width="120" height="60" rx="8" fill="var(--color-secondary)" opacity="0.1" stroke="var(--color-secondary)" stroke-width="2"/>
-                        <text x="250" y="140" text-anchor="middle" fill="var(--color-text)" font-size="12" font-weight="bold">⚙️</text>
-                        <text x="250" y="155" text-anchor="middle" fill="var(--color-text)" font-size="11">GitHub Actions</text>
-                        <text x="250" y="170" text-anchor="middle" fill="var(--color-text-secondary)" font-size="10">CI/CD</text>
-                    </g>
-
-                    <!-- Arrow 2 -->
-                    <path d="M 320 150 L 370 150" stroke="var(--color-secondary)" stroke-width="2" marker-end="url(#arrowhead)"/>
-
-                    <!-- Terraform -->
-                    <g class="arch-node">
-                        <rect x="380" y="120" width="120" height="60" rx="8" fill="var(--color-accent)" opacity="0.1" stroke="var(--color-accent)" stroke-width="2"/>
-                        <text x="440" y="140" text-anchor="middle" fill="var(--color-text)" font-size="12" font-weight="bold">🏗️</text>
-                        <text x="440" y="155" text-anchor="middle" fill="var(--color-text)" font-size="11">Terraform</text>
-                        <text x="440" y="170" text-anchor="middle" fill="var(--color-text-secondary)" font-size="10">Azure</text>
-                    </g>
-
-                    <!-- Arrow 3 -->
-                    <path d="M 510 150 L 560 150" stroke="var(--color-accent)" stroke-width="2" marker-end="url(#arrowhead)"/>
-
-                    <!-- Static Website -->
-                    <g class="arch-node">
-                        <rect x="570" y="120" width="120" height="60" rx="8" fill="var(--color-success)" opacity="0.1" stroke="var(--color-success)" stroke-width="2"/>
-                        <text x="630" y="140" text-anchor="middle" fill="var(--color-text)" font-size="12" font-weight="bold">🌐</text>
-                        <text x="630" y="155" text-anchor="middle" fill="var(--color-text)" font-size="11">Static Website</text>
-                        <text x="630" y="170" text-anchor="middle" fill="var(--color-text-secondary)" font-size="10">Azure Storage</text>
-                    </g>
-
-                    <!-- Arrow marker definition -->
-                    <defs>
-                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                            <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-text-secondary)"/>
-                        </marker>
-                    </defs>
-                </svg>
-            </div>
-        </section>
-
-        <!-- Deploy Status -->
-        <section class="section" id="deploy">
-            <h2 class="section-title">📊 デプロイ状況</h2>
-            <div class="deploy-status">
-                <div class="status-grid">
-                    <div class="status-item">
-                        <span class="status-label">Storage Account</span>
-                        <span class="status-value" id="storage-account">Loading...</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Website URL</span>
-                        <a class="status-value status-link" id="website-url" href="#" target="_blank">Loading...</a>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">最終デプロイ</span>
-                        <span class="status-value" id="deploy-time">Loading...</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Git SHA</span>
-                        <span class="status-value" id="git-sha">Loading...</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Commands -->
-        <section class="section">
-            <h2 class="section-title">💻 コマンドスニペット</h2>
-            <div class="commands-grid">
-                <div class="command-card">
-                    <h3>インフラ構築</h3>
-                    <div class="code-block">
-                        <code>make up-azure</code>
-                        <button class="copy-btn" onclick="copyToClipboard('make up-azure')" aria-label="コピー">📋</button>
-                    </div>
-                </div>
-
-                <div class="command-card">
-                    <h3>アプリデプロイ</h3>
-                    <div class="code-block">
-                        <code>make app-deploy</code>
-                        <button class="copy-btn" onclick="copyToClipboard('make app-deploy')" aria-label="コピー">📋</button>
-                    </div>
-                </div>
-
-                <div class="command-card">
-                    <h3>URL確認</h3>
-                    <div class="code-block">
-                        <code>make url-azure</code>
-                        <button class="copy-btn" onclick="copyToClipboard('make url-azure')" aria-label="コピー">📋</button>
-                    </div>
-                </div>
-
-                <div class="command-card">
-                    <h3>完全セットアップ</h3>
-                    <div class="code-block">
-                        <code>make up-azure && make app-deploy</code>
-                        <button class="copy-btn" onclick="copyToClipboard('make up-azure && make app-deploy')" aria-label="コピー">📋</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 SRE IaC Starter - Built with ❤️ and Terraform | Test: Fixed workflow v2</p>
-        </div>
-    </footer>
-
-    <script src="main.js"></script>
+  <script>
+    document.getElementById('deploy-time').textContent = new Date().toLocaleString('ja-JP');
+  </script>
 </body>
 </html>

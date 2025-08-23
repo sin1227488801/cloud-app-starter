@@ -90,7 +90,7 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
           echo "Initializing Terraform with backend configuration..."
-          terraform -chdir=envs/azure/azure-b1s-mvp init \
+          terraform -chdir=envs/azure/azure-b1s-mvp init -reconfigure \
             -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" \
             -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" \
             -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" \
@@ -193,13 +193,25 @@ jobs:
               > "$SRC_DIR/index.html"
           fi
 
-          echo "Uploading files to web container..."
-          if az storage blob upload-batch \
+          echo "Getting storage account key..."
+          STORAGE_KEY=$(az storage account keys list \
             --account-name "$SA_NAME" \
+            --resource-group "sre-iac-starter-rg" \
+            --query '[0].value' \
+            -o tsv)
+
+          if [ -z "$STORAGE_KEY" ]; then
+            echo "Failed to get storage account key"
+            exit 1
+          fi
+
+          echo "Uploading files to web container..."
+          if AZURE_STORAGE_ACCOUNT="$SA_NAME" AZURE_STORAGE_KEY="$STORAGE_KEY" \
+            az storage blob upload-batch \
             --source "$SRC_DIR" \
             --destination '$web' \
             --overwrite \
-            --auth-mode login; then
+            --auth-mode key; then
             echo "Upload successful!"
 
             if WEB_URL=$(az storage account show -n "$SA_NAME" \

@@ -1,52 +1,48 @@
-# IaC MultiCloud Prototype (Terraform + Docker + Azure/AWS)
+# SRE IaC Starter
 
-## 概要
+Azure/AWSマルチクラウド対応のTerraform IaCスターターキット
 
-このプロジェクトは、TerraformとDockerを活用してAzureとAWSの両方に同一構成をデプロイするプロトタイプです。
-非エンジニアでも `docker run` 1コマンドで環境再現が可能です。
+## 🎯 現在の状況
 
-## 特徴
+✅ **完了済み**
+- Terraformモジュール構成（network, compute, static-website）
+- GitHub Actions CI/CDパイプライン
+- Azure Static Website自動デプロイ
+- リモートステート管理（Azure Storage）
 
-- **Terraformモジュール化**: ネットワーク・コンピュート・監視を分離し再利用性を確保
-- **Docker実行環境**: ローカル環境依存を排除
-- **マルチクラウド対応**: AzureとAWS両方に同一構成を適用可能
-- **Remote State**: Azure Storage & Key Vault / S3 & DynamoDBでステート管理
+🔧 **修正済み**
+- Terraformバックエンド設定の有効化
+- ワークフローのoutput取得処理の簡素化
+- デプロイ用HTMLファイルの作成
 
-## クイックスタート
+## 🚀 次のステップ
 
-1. `.env` に認証情報を設定
-2. Dockerビルド
+### 1. GitHubシークレットの設定確認
 
-docker build -t iac-runner .
-3. 実行（Azureの場合）
+```bash
+# シークレット確認
+bash scripts/check-secrets.sh
+```
 
-docker run --rm --env-file .env iac-runner terraform -chdir=terraform/azure apply
-4. 実行（AWSの場合）
+必要なシークレット:
+- `ARM_CLIENT_ID`
+- `ARM_CLIENT_SECRET` 
+- `ARM_SUBSCRIPTION_ID`
+- `ARM_TENANT_ID`
 
-docker run --rm --env-file .env iac-runner terraform -chdir=terraform/aws apply
+### 2. 手動でのTerraform状態確認
 
-## 予定される利用シーン
+```bash
+# 既存リソースのインポート確認
+bash scripts/manual-import.sh
+```
 
-- SREチームによるクラウド環境の統一管理
-- 新規メンバーが1日で再現可能な検証環境構築
-- クラウド間移行やDR（災害復旧）の基礎検証
+### 3. GitHub Actionsの実行
 
-markdown
-コピーする
-編集する
+1. `terraform-apply` ワークフローを実行
+2. `app-deploy` ワークフローを実行
 
-markdown
-コピーする
-編集する
-
-## SRE IaC Starter (Terraform + Docker, Azure & AWS)
-
-Minimal, reproducible IaC scaffold to deploy the same small stack on **Azure** and **AWS**.
-Goal: anyone can run the same commands and get the same infra.
-
-## 🚀 Quickstart
-
-### 1分デプロイ
+## 📁 プロジェクト構成
 
 ```bash
 # 1. リポジトリクローン
