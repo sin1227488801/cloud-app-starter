@@ -1,0 +1,150 @@
+name: terraform-destroy
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type "DESTROY" to confirm deletion of all resources'
+        required: true
+        type: string
+      environment:
+        description: 'Environment to destroy'
+        required: true
+        default: 'azure-b1s-mvp'
+        type: choice
+        options:
+          - azure-b1s-mvp
+          - aws-ec2-mvp
+
+permissions:
+  contents: read
+
+env:
+  TFSTATE_RG: sre-iac-starter-tfstate-rg
+  TFSTATE_LOC: japaneast
+  TFSTATE_CONTAINER: tfstate
+  TFSTATE_KEY: azure-b1s-mvp.tfstate
+
+jobs:
+  destroy-infrastructure:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm_destroy == 'DESTROY'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.5
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Ensure tfstate backend resources
+        env:
+          TFSTATE_RG: ${{ env.TFSTATE_RG }}
+          TFSTATE_LOC: ${{ env.TFSTATE_LOC }}
+          TFSTATE_CONTAINER: ${{ env.TFSTATE_CONTAINER }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        run: |
+          echo "Ensuring tfstate backend resources..."
+          
+          # ensure-tfstate.shを実行
+          if ! bash scripts/ci/ensure-tfstate.sh | tee ensure.log; then
+            echo "Error: ensure-tfstate.sh failed"
+            cat ensure.log
+            exit 1
+          fi
+          
+          # Storage Account名を取得
+          SA=$(grep '^TFSTATE_SA=' ensure.log | cut -d= -f2)
+          if [ -z "$SA" ]; then
+            echo "Error: Failed to get storage account name from output"
+            echo "ensure.log contents:"
+            cat ensure.log
+            exit 1
+          fi
+          
+          echo "✅ Storage Account configured: $SA"
+          echo "TFSTATE_SA=$SA" >> $GITHUB_ENV
+
+      - name: Terraform Init (remote backend)
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          echo "Initializing Terraform with backend configuration..."
+          terraform -chdir=envs/azure/azure-b1s-mvp init -reconfigure \
+            -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" \
+            -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" \
+            -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}" \
+            -backend-config="key=${{ env.TFSTATE_KEY }}"
+
+      - name: Terraform Plan Destroy
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          echo "Planning destruction..."
+          terraform -chdir=envs/azure/azure-b1s-mvp plan -destroy -out=destroy.tfplan
+
+      - name: Terraform Destroy
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          echo "🗑️ Destroying infrastructure..."
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          
+          # 削除実行
+          if terraform -chdir=envs/azure/azure-b1s-mvp apply destroy.tfplan; then
+            echo "✅ Infrastructure destroyed successfully!"
+          else
+            echo "❌ Destruction failed!"
+            echo "Some resources may need manual cleanup."
+            exit 1
+          fi
+
+      - name: Cleanup Storage Account (if empty)
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          echo "🧹 Checking for remaining storage accounts..."
+          
+          # 残存するストレージアカウントをチェック
+          REMAINING_SA=$(az storage account list --resource-group "sre-iac-starter-rg" \
+            --query "[?contains(name, 'sreiac')].name" -o tsv 2>/dev/null || echo "")
+          
+          if [ -n "$REMAINING_SA" ]; then
+            echo "⚠️ Warning: Storage accounts still exist:"
+            echo "$REMAINING_SA"
+            echo "These may contain data and were not automatically deleted."
+          else
+            echo "✅ No remaining storage accounts found."
+          fi
+
+  destroy-confirmation-failed:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm_destroy != 'DESTROY'
+    steps:
+      - name: Destruction cancelled
+        run: |
+          echo "❌ Destruction cancelled!"
+          echo "To destroy resources, you must type 'DESTROY' exactly."
+          echo "Input received: '${{ github.event.inputs.confirm_destroy }}'"
+          exit 1

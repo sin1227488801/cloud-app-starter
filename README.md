@@ -61,6 +61,9 @@ make app-deploy
 
 # 5. URL確認
 make url-azure
+
+# 6. リソース削除（必要時）
+make down-azure
 ```
 
 ### 🎯 デモの見方
@@ -80,6 +83,24 @@ Developer → git push → GitHub Actions → Terraform → Azure Storage → St
      ↓              ↓                    ↓              ↓              ↓
    コード変更      PR作成時プラン      インフラ更新    アプリデプロイ   自動反映
 ```
+
+## 🗑️ リソース削除
+
+### ワンクリック削除（ローカル）
+```bash
+# 10秒の確認待機後に削除実行
+make down-azure
+
+# または手動スクリプト実行
+bash scripts/destroy-azure.sh
+```
+
+### GitHub Actions経由での削除
+1. GitHub Actions → terraform-destroy → Run workflow
+2. 確認フィールドに「DESTROY」と入力
+3. 実行して全リソースを削除
+
+⚠️ **注意**: 削除は取り消せません。本番環境では十分注意してください。
 
 ## Layout
 
@@ -142,4 +163,4 @@ pre-commit run --all-files
 - **Testing**: Terratest導入
 - **Environments**: staging/production分離
 
-**🎯 デモサイト**: [https://sreiacdevm627ymaf.z11.web.core.windows.net/](https://sreiacdevm627ymaf.z11.web.core.windows.net/)
+**🎯 デモサイト**: [https://sreiacdevohgqvfjy.z11.web.core.windows.net/](https://sreiacdevohgqvfjy.z11.web.core.windows.net/)
