@@ -181,14 +181,27 @@ jobs:
               > "$SRC_DIR/index.html"
           fi
 
+          # ストレージアカウントキーを取得
+          echo "Getting storage account key..."
+          STORAGE_KEY=$(az storage account keys list \
+            --account-name "$SA_NAME" \
+            --resource-group "sre-iac-starter-rg" \
+            --query '[0].value' \
+            -o tsv)
+
+          if [ -z "$STORAGE_KEY" ]; then
+            echo "Failed to get storage account key"
+            exit 1
+          fi
+
           # ファイルをアップロード
           echo "Uploading files to web container..."
           if az storage blob upload-batch \
             --account-name "$SA_NAME" \
+            --account-key "$STORAGE_KEY" \
             --source "$SRC_DIR" \
             --destination '$web' \
-            --overwrite \
-            --auth-mode login; then
+            --overwrite; then
             echo "Upload successful!"
             if [ -n "$WEB_URL" ]; then
               echo "Website URL: $WEB_URL"
