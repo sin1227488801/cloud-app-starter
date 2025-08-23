@@ -48,14 +48,32 @@ jobs:
           TFSTATE_CONTAINER: ${{ env.TFSTATE_CONTAINER }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         run: |
+          echo "Ensuring tfstate backend resources..."
           bash scripts/ci/ensure-tfstate.sh | tee ensure.log
+          
+          # Storage Account名を取得
           SA=$(grep '^TFSTATE_SA=' ensure.log | cut -d= -f2)
+          if [ -z "$SA" ]; then
+            echo "Error: Failed to get storage account name"
+            cat ensure.log
+            exit 1
+          fi
+          
+          echo "Storage Account: $SA"
           echo "TFSTATE_SA=$SA" >> $GITHUB_ENV
 
       - name: Terraform Validate (Azure)
         run: |
           terraform -chdir=envs/azure/azure-b1s-mvp init -backend=false
           terraform -chdir=envs/azure/azure-b1s-mvp validate
+
+      - name: Debug backend configuration
+        run: |
+          echo "Backend configuration:"
+          echo "  TFSTATE_RG: ${{ env.TFSTATE_RG }}"
+          echo "  TFSTATE_SA: ${{ env.TFSTATE_SA }}"
+          echo "  TFSTATE_CONTAINER: ${{ env.TFSTATE_CONTAINER }}"
+          echo "  TFSTATE_KEY: ${{ env.TFSTATE_KEY }}"
 
       - name: Terraform Init (remote backend)
         env:
@@ -64,6 +82,7 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
+          echo "Initializing Terraform with backend configuration..."
           terraform -chdir=envs/azure/azure-b1s-mvp init \
             -backend-config="resource_group_name=${{ env.TFSTATE_RG }}" \
             -backend-config="storage_account_name=${{ env.TFSTATE_SA }}" \
