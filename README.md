@@ -1,4 +1,4 @@
-# 🚀 SRE IaC Starter - ワンクリックWebサイト作成ツール
+# 🚀 Cloud App Starter - ワンクリックWebサイト作成ツール
 
 **プログラミング初心者でもOK！** ブラウザだけで美しいWebサイトを5分で作成・公開できます。
 
@@ -12,7 +12,7 @@
 
 ## 🎯 デモサイト
 
-**実際に作成されるサイト**: https://sreiacdevohgqvfjy.z11.web.core.windows.net/
+**実際に作成されるサイト**: https://cloudappdevohgqvfjy.z11.web.core.windows.net/
 
 ## 🚀 今すぐ始める
 
@@ -44,10 +44,11 @@ GitHub → Actions → Terraform → Azure Storage → Static Website
 
 ### 🛠️ 開発者向けローカル環境
 
+#### Linux/Mac (Make使用)
 ```bash
 # 1. リポジトリクローン
-git clone https://github.com/sin1227488801/sre-iac-starter.git
-cd sre-iac-starter
+git clone https://github.com/sin1227488801/cloud-app-starter.git
+cd cloud-app-starter
 
 # 2. 認証情報設定
 cp .env.example .env
@@ -61,10 +62,28 @@ make url-azure    # URL確認
 make down-azure   # 完全削除
 ```
 
+#### Windows (PowerShell使用)
+```powershell
+# 1. リポジトリクローン
+git clone https://github.com/sin1227488801/cloud-app-starter.git
+cd cloud-app-starter
+
+# 2. 認証情報設定
+Copy-Item .env.example .env
+# .envを編集して実際の認証情報を設定
+
+# 3. ワンクリックデプロイ
+.\azure-deploy.ps1 up        # インフラ構築
+.\azure-deploy.ps1 url       # URL確認
+
+# 4. ワンクリック削除
+.\azure-deploy.ps1 down      # 完全削除
+```
+
 ### 🎯 デモの見方
 
 1. **ローカルデモ**: 上記手順でデプロイ後、`make url-azure`で表示されるURLにアクセス
-2. **ライブデモ**: [https://sreiacdevm627ymaf.z11.web.core.windows.net/](https://sreiacdevm627ymaf.z11.web.core.windows.net/)
+2. **ライブデモ**: [https://cloudappdevm627ymaf.z11.web.core.windows.net/](https://cloudappdevm627ymaf.z11.web.core.windows.net/)
 3. **UI機能**:
    - フェーズ進捗の可視化
    - リアルタイムデプロイ状況
@@ -82,12 +101,20 @@ Developer → git push → GitHub Actions → Terraform → Azure Storage → St
 ## 🗑️ リソース削除
 
 ### ワンクリック削除（ローカル）
+
+#### Linux/Mac
 ```bash
-# 10秒の確認待機後に削除実行
+# 5秒の確認待機後に削除実行
 make down-azure
 
 # または手動スクリプト実行
 bash scripts/destroy-azure.sh
+```
+
+#### Windows
+```powershell
+# 5秒の確認待機後に削除実行
+.\azure-deploy.ps1 down
 ```
 
 ### GitHub Actions経由での削除
@@ -158,4 +185,4 @@ pre-commit run --all-files
 - **Testing**: Terratest導入
 - **Environments**: staging/production分離
 
-**🎯 デモサイト**: [https://sreiacdevohgqvfjy.z11.web.core.windows.net/](https://sreiacdevohgqvfjy.z11.web.core.windows.net/)
+**🎯 デモサイト**: [https://cloudappdevohgqvfjy.z11.web.core.windows.net/](https://cloudappdevohgqvfjy.z11.web.core.windows.net/)

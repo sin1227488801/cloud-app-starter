@@ -9,7 +9,7 @@
 ## 🚀 PR作成手順
 
 ### 1. GitHubリポジトリにアクセス
-https://github.com/sin1227488801/sre-iac-starter
+https://github.com/sin1227488801/cloud-app-starter
 
 ### 2. PRの作成
 1. **「Compare & pull request」ボタンをクリック**
@@ -88,7 +88,7 @@ feat: implement dynamic dashboard and fix deployment issues
    - Actionsタブで実行状況を確認
    
 2. **ウェブサイト確認**
-   - https://sreiacdevlvupk0zb.z11.web.core.windows.net/
+   - https://cloudappdevlvupk0zb.z11.web.core.windows.net/
    - 動的ダッシュボードが表示されることを確認
 
 ## 🔍 期待される結果

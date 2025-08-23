@@ -1,5 +1,5 @@
 /**
- * SRE IaC Starter - Main JavaScript
+ * Cloud App Starter - Main JavaScript
  * Handles meta.json loading, copy functionality, and UI interactions
  */
 
@@ -92,8 +92,8 @@ function updateDeploymentStatus(meta) {
  */
 function showPlaceholderStatus() {
     const placeholders = {
-        'storage-account': 'sreiacdevm627ymaf',
-        'website-url': 'https://sreiacdevm627ymaf.z11.web.core.windows.net/',
+        'storage-account': 'cloudappdevm627ymaf',
+        'website-url': 'https://cloudappdevm627ymaf.z11.web.core.windows.net/',
         'deploy-time': formatDeployTime(new Date()),
         'git-sha': 'local-dev'
     };

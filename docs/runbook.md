@@ -1,4 +1,4 @@
-# SRE IaC Starter - 運用ランブック
+# Cloud App Starter - 運用ランブック
 
 ## 🚀 初期セットアップ
 
@@ -7,7 +7,7 @@
 ```bash
 # リポジトリクローン
 git clone <repo-url>
-cd sre-iac-starter
+cd cloud-app-starter
 
 # 環境変数設定
 cp .env.example .env

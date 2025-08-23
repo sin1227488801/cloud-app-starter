@@ -48,8 +48,8 @@ log "======================================"
 # 最終確認
 warn "⚠️  WARNING: This will destroy ALL Azure resources!"
 warn "Resources to be destroyed:"
-warn "  - Resource Group: sre-iac-starter-rg"
-warn "  - Storage Account: sreiacdev*"
+warn "  - Resource Group: cloud-app-starter-rg"
+warn "  - Storage Account: cloudappdev*"
 warn "  - Virtual Network and Subnets"
 warn "  - All associated resources"
 echo ""
@@ -71,7 +71,7 @@ az login --service-principal \
 az account set --subscription "$ARM_SUBSCRIPTION_ID"
 
 log "📋 Listing current resources..."
-RESOURCE_GROUP="sre-iac-starter-rg"
+RESOURCE_GROUP="cloud-app-starter-rg"
 
 # リソースグループの存在確認
 if ! az group show --name "$RESOURCE_GROUP" > /dev/null 2>&1; then
@@ -122,7 +122,7 @@ log "🧹 Manual cleanup of remaining resources..."
 # Storage Account内のデータを削除
 log "Cleaning up storage accounts..."
 STORAGE_ACCOUNTS=$(az storage account list --resource-group "$RESOURCE_GROUP" \
-    --query "[?contains(name, 'sreiac')].name" -o tsv 2>/dev/null || echo "")
+    --query "[?contains(name, 'cloudapp')].name" -o tsv 2>/dev/null || echo "")
 
 for sa in $STORAGE_ACCOUNTS; do
     log "Cleaning storage account: $sa"

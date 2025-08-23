@@ -43,7 +43,7 @@
 
 - **静的サイト**: 正常稼働中（LPバージョン）
 - **動的ダッシュボード**: デプロイ準備完了
-- **URL**: <https://sreiacdevlvupk0zb.z11.web.core.windows.net/>
+- **URL**: <https://cloudappdevlvupk0zb.z11.web.core.windows.net/>
 
 ## 🎯 次のアクション
 
@@ -51,7 +51,7 @@
 
 ```bash
 # GitHub Webインターフェースで実行
-1. https://github.com/sin1227488801/sre-iac-starter にアクセス
+1. https://github.com/sin1227488801/cloud-app-starter にアクセス
 2. "Compare & pull request" をクリック
 3. PRを作成・マージ
 ```

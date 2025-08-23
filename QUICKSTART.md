@@ -22,7 +22,7 @@
 1. **Azure Portal**: https://portal.azure.com
 2. **Service Principal作成**: 
    - Azure Active Directory → アプリの登録 → 新規登録
-   - 名前: `sre-iac-starter-sp`
+   - 名前: `cloud-app-starter-sp`
 3. **認証情報メモ**: 4つの値をメモ帳に保存
    - アプリケーション（クライアント）ID
    - ディレクトリ（テナント）ID
@@ -31,7 +31,7 @@
 4. **権限設定**: サブスクリプション → IAM → 共同作成者ロール追加
 
 ### Step 3: プロジェクト準備
-1. **フォーク**: https://github.com/sin1227488801/sre-iac-starter → Fork
+1. **フォーク**: https://github.com/sin1227488801/cloud-app-starter → Fork
 2. **シークレット設定**: Settings → Secrets and variables → Actions
    - `ARM_CLIENT_ID`: アプリケーションID
    - `ARM_CLIENT_SECRET`: クライアントシークレット  
@@ -63,7 +63,7 @@
 ---
 
 ## 🎉 成功例
-**作成されるサイト**: https://sreiacdevohgqvfjy.z11.web.core.windows.net/
+**作成されるサイト**: https://cloudappdevohgqvfjy.z11.web.core.windows.net/
 
 ---
 

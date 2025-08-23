@@ -15,7 +15,7 @@ permissions:
 env:
   TF_IN_AUTOMATION: true
   TF_INPUT: 0
-  TFSTATE_RG: sre-iac-starter-tfstate-rg
+  TFSTATE_RG: cloud-app-starter-tfstate-rg
   TFSTATE_LOC: japaneast
   TFSTATE_CONTAINER: tfstate
   TFSTATE_KEY: azure-b1s-mvp.tfstate
@@ -144,9 +144,9 @@ jobs:
             echo "Failed to get storage account from Terraform output"
             echo "Trying alternative method..."
 
-            RG_NAME="sre-iac-starter-rg"
+            RG_NAME="cloud-app-starter-rg"
             SA_NAME=$(az storage account list --resource-group "$RG_NAME" \
-              --query "[?contains(name, 'sreiac')].name | [0]" \
+              --query "[?contains(name, 'cloudapp')].name | [0]" \
               -o tsv 2>/dev/null || echo "")
 
             if [ -n "$SA_NAME" ]; then
@@ -181,11 +181,11 @@ jobs:
               '<html lang="ja">' \
               '<head>' \
               '  <meta charset="utf-8">' \
-              '  <title>SRE IaC Starter</title>' \
+              '  <title>Cloud App Starter</title>' \
               '  <meta name="viewport" content="width=device-width, initial-scale=1.0">' \
               '</head>' \
               '<body>' \
-              '  <h1>SRE IaC Starter</h1>' \
+              '  <h1>Cloud App Starter</h1>' \
               "  <p>Deployed: $(date -u +'%Y-%m-%d %H:%M:%S UTC')</p>" \
               "  <p>Storage Account: \$SA_NAME</p>" \
               '</body>' \
@@ -196,7 +196,7 @@ jobs:
           echo "Getting storage account key..."
           STORAGE_KEY=$(az storage account keys list \
             --account-name "$SA_NAME" \
-            --resource-group "sre-iac-starter-rg" \
+            --resource-group "cloud-app-starter-rg" \
             --query '[0].value' \
             -o tsv)
 

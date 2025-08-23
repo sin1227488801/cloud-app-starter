@@ -2,7 +2,7 @@
 
 ## 概要
 
-SRE IaC Starterで作成したAzureリソースを安全に削除するためのガイドです。
+Cloud App Starterで作成したAzureリソースを安全に削除するためのガイドです。
 
 ## 🎯 削除方法
 
@@ -21,7 +21,7 @@ make down-azure
 ### 2. GitHub Actions経由
 
 1. **GitHub リポジトリにアクセス**
-   - https://github.com/sin1227488801/sre-iac-starter
+   - https://github.com/sin1227488801/cloud-app-starter
 
 2. **Actions → terraform-destroy**
    - "Run workflow" をクリック
@@ -48,9 +48,9 @@ bash scripts/destroy-azure.sh
 ## 🔍 削除されるリソース
 
 ### Azure リソース
-- **Resource Group**: `sre-iac-starter-rg`
-- **Storage Account**: `sreiacdev*` (ランダムサフィックス)
-- **Virtual Network**: `sre-iac-starter-vnet`
+- **Resource Group**: `cloud-app-starter-rg`
+- **Storage Account**: `cloudappdev*` (ランダムサフィックス)
+- **Virtual Network**: `cloud-app-starter-vnet`
 - **Subnet**: `app`
 - **Network Security Group**: 関連するNSG
 
@@ -81,7 +81,7 @@ bash scripts/destroy-azure.sh
 3. **強制削除**
    ```bash
    # Resource Group の強制削除
-   az group delete --name sre-iac-starter-rg --yes --no-wait
+   az group delete --name cloud-app-starter-rg --yes --no-wait
    ```
 
 ## 🛠️ トラブルシューティング
@@ -91,8 +91,8 @@ bash scripts/destroy-azure.sh
 #### 1. "Resource is locked" エラー
 ```bash
 # ロックの確認と削除
-az lock list --resource-group sre-iac-starter-rg
-az lock delete --name <lock-name> --resource-group sre-iac-starter-rg
+az lock list --resource-group cloud-app-starter-rg
+az lock delete --name <lock-name> --resource-group cloud-app-starter-rg
 ```
 
 #### 2. "Storage account contains data" エラー
@@ -104,20 +104,20 @@ az storage blob delete-batch --account-name <storage-account> --source '$web'
 #### 3. "Network interface in use" エラー
 ```bash
 # VMが存在する場合は先にVM削除
-az vm delete --resource-group sre-iac-starter-rg --name <vm-name>
+az vm delete --resource-group cloud-app-starter-rg --name <vm-name>
 ```
 
 ### 削除状況の確認
 
 ```bash
 # Resource Group の存在確認
-az group show --name sre-iac-starter-rg
+az group show --name cloud-app-starter-rg
 
 # リソース一覧確認
-az resource list --resource-group sre-iac-starter-rg --output table
+az resource list --resource-group cloud-app-starter-rg --output table
 
 # 削除進行状況確認
-az group wait --name sre-iac-starter-rg --deleted
+az group wait --name cloud-app-starter-rg --deleted
 ```
 
 ## 📊 削除後の確認

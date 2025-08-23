@@ -110,7 +110,7 @@ No storage account found in resource group
 
 ```bash
 # ストレージアカウント確認
-az storage account list --resource-group sre-iac-starter-rg
+az storage account list --resource-group cloud-app-starter-rg
 
 # 手動でのリソース確認
 bash scripts/manual-import.sh
@@ -178,7 +178,7 @@ terraform -chdir=envs/azure/azure-b1s-mvp plan
 az group list --query "[?contains(name, 'sre-iac')].name" -o table
 
 # ストレージアカウント一覧
-az storage account list --resource-group sre-iac-starter-rg --query "[].{Name:name,Location:location,Kind:kind}" -o table
+az storage account list --resource-group cloud-app-starter-rg --query "[].{Name:name,Location:location,Kind:kind}" -o table
 
 # 静的ウェブサイト設定確認
 az storage blob service-properties show --account-name <storage-account-name> --query staticWebsite
@@ -188,13 +188,13 @@ az storage blob service-properties show --account-name <storage-account-name> --
 
 ```bash
 # ワークフロー実行履歴
-gh run list --repo sin1227488801/sre-iac-starter
+gh run list --repo sin1227488801/cloud-app-starter
 
 # 特定の実行詳細
-gh run view <run-id> --repo sin1227488801/sre-iac-starter
+gh run view <run-id> --repo sin1227488801/cloud-app-starter
 
 # ログ確認
-gh run view <run-id> --log --repo sin1227488801/sre-iac-starter
+gh run view <run-id> --log --repo sin1227488801/cloud-app-starter
 ```
 
 ## 📞 サポート情報
