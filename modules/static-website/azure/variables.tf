@@ -11,7 +11,7 @@ variable "location" {
 variable "project" {
   description = "Project name for resource naming (will be shortened for storage account)"
   type        = string
-  default     = "sreiac"
+  default     = "cloudapp"
 }
 
 variable "env" {

@@ -21,23 +21,34 @@ endif
 # README.mdに記載されているコマンド
 up-azure:
 	@echo "🚀 Setting up Azure infrastructure..."
-	$(MAKE) docker-init CLOUD=azure
+	@echo "📋 Using local state for development..."
+	$(MAKE) docker-init-local CLOUD=azure
 	$(MAKE) docker-apply CLOUD=azure
 
 down-azure:
 	@echo "🗑️ Destroying Azure infrastructure..."
 	@echo "⚠️  WARNING: This will destroy ALL Azure resources!"
-	@echo "Press Ctrl+C within 10 seconds to cancel..."
-	@sleep 10
+	@echo "Press Ctrl+C within 5 seconds to cancel..."
+	@sleep 5
+	$(MAKE) docker-init-local CLOUD=azure
 	$(MAKE) docker-destroy CLOUD=azure
+	$(MAKE) cleanup-local CLOUD=azure
 
 app-deploy:
 	@echo "📦 Deploying application..."
 	@if [ -d "app" ]; then \
-		echo "App directory found, deployment would be handled by CI/CD"; \
-		echo "For manual deployment, use: az storage blob upload-batch"; \
+		STORAGE_ACCOUNT=$$($(docker-run) -chdir=$(ENV_DIR) output -raw storage_account_name 2>/dev/null); \
+		if [ -n "$$STORAGE_ACCOUNT" ]; then \
+			echo "🚀 Uploading files to $$STORAGE_ACCOUNT..."; \
+			docker run --rm -it $(ENVFLAG) -v $(PWD):$(WORKDIR) -w $(WORKDIR) mcr.microsoft.com/azure-cli:latest sh -c \
+				'az login --service-principal -u $$ARM_CLIENT_ID -p $$ARM_CLIENT_SECRET --tenant $$ARM_TENANT_ID > /dev/null && \
+				 az storage blob upload-batch --account-name '$$STORAGE_ACCOUNT' --source app --destination "$$web" --auth-mode key --overwrite'; \
+			echo "✅ Application deployed successfully!"; \
+		else \
+			echo "❌ Storage account not found. Run 'make up-azure' first."; \
+		fi; \
 	else \
-		echo "No app directory found"; \
+		echo "❌ No app directory found"; \
 	fi
 
 url-azure:
@@ -46,7 +57,25 @@ url-azure:
 
 # 既存のコマンド
 docker-init:
+	@echo "🔧 Initializing Terraform with backend configuration..."
 	$(docker-run) -chdir=$(ENV_DIR) init -backend-config=backend.hcl || true
+
+docker-init-local:
+	@echo "🔧 Initializing Terraform for local development..."
+	@echo "📁 Using local configuration..."
+	@# main.tfが既にローカル設定でない場合は切り替え
+	@if [ -f "$(ENV_DIR)/main.tf.remote" ]; then \
+		echo "✅ Already using local configuration"; \
+	else \
+		if [ -f "$(ENV_DIR)/main.tf" ]; then \
+			mv "$(ENV_DIR)/main.tf" "$(ENV_DIR)/main.tf.remote"; \
+			echo "✅ Backed up remote configuration"; \
+		fi; \
+		cp "$(ENV_DIR)/main.local.tf" "$(ENV_DIR)/main.tf"; \
+		echo "✅ Switched to local configuration"; \
+	fi
+	@# ローカルstateで初期化
+	$(docker-run) -chdir=$(ENV_DIR) init -reconfigure
 
 docker-plan:
 	$(docker-run) -chdir=$(ENV_DIR) plan
@@ -55,14 +84,25 @@ docker-apply:
 	$(docker-run) -chdir=$(ENV_DIR) apply -auto-approve
 
 docker-destroy:
-	@echo "🗑️ Initializing for destruction..."
-	@# ローカルstateを使用（backend設定なし）
-	@$(docker-run) -chdir=$(ENV_DIR) init -reconfigure -backend=false || true
 	@echo "🗑️ Planning destruction..."
 	@$(docker-run) -chdir=$(ENV_DIR) plan -destroy
-	@echo "⚠️  Final confirmation: Press Enter to destroy, Ctrl+C to cancel"
-	@read
+	@echo ""
+	@echo "⚠️  FINAL CONFIRMATION REQUIRED ⚠️"
+	@echo "This will permanently delete all Azure resources!"
+	@echo "Type 'yes' to confirm destruction:"
+	@bash -c 'read -p "> " confirm && [ "$$confirm" = "yes" ] || (echo "❌ Destruction cancelled" && exit 1)'
+	@echo "🗑️ Destroying resources..."
 	@$(docker-run) -chdir=$(ENV_DIR) destroy -auto-approve
+
+cleanup-local:
+	@echo "🧹 Cleaning up local configuration..."
+	@# main.tfを元に戻す
+	@if [ -f "$(ENV_DIR)/main.tf.remote" ]; then \
+		mv "$(ENV_DIR)/main.tf.remote" "$(ENV_DIR)/main.tf"; \
+		echo "✅ Configuration restored to remote backend"; \
+	else \
+		echo "ℹ️  No remote configuration found, keeping current configuration"; \
+	fi
 
 fmt:
 	$(docker-run) fmt -recursive

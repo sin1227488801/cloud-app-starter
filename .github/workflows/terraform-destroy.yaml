@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 env:
-  TFSTATE_RG: sre-iac-starter-tfstate-rg
+  TFSTATE_RG: cloud-app-starter-tfstate-rg
   TFSTATE_LOC: japaneast
   TFSTATE_CONTAINER: tfstate
   TFSTATE_KEY: azure-b1s-mvp.tfstate
@@ -127,8 +127,8 @@ jobs:
           echo "🧹 Checking for remaining storage accounts..."
           
           # 残存するストレージアカウントをチェック
-          REMAINING_SA=$(az storage account list --resource-group "sre-iac-starter-rg" \
-            --query "[?contains(name, 'sreiac')].name" -o tsv 2>/dev/null || echo "")
+          REMAINING_SA=$(az storage account list --resource-group "cloud-app-starter-rg" \
+            --query "[?contains(name, 'cloudapp')].name" -o tsv 2>/dev/null || echo "")
           
           if [ -n "$REMAINING_SA" ]; then
             echo "⚠️ Warning: Storage accounts still exist:"

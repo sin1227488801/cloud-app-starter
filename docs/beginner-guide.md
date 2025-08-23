@@ -34,7 +34,7 @@
 1. **Azure Portal** (https://portal.azure.com) にログイン
 2. 検索バーで「Azure Active Directory」を検索
 3. 左メニュー「アプリの登録」→「新規登録」
-4. 名前: `sre-iac-starter-sp` と入力
+4. 名前: `cloud-app-starter-sp` と入力
 5. 「登録」をクリック
 
 #### 認証情報取得
@@ -43,7 +43,7 @@
 3. **ディレクトリ（テナント）ID** をコピー → メモ帳に保存
 4. 左メニュー「証明書とシークレット」
 5. 「新しいクライアントシークレット」
-6. 説明: `sre-iac-starter`、期限: 24か月
+6. 説明: `cloud-app-starter`、期限: 24か月
 7. **値** をコピー → メモ帳に保存（⚠️ 一度しか表示されません）
 
 #### サブスクリプションID取得
@@ -55,7 +55,7 @@
 1. サブスクリプション画面で「アクセス制御（IAM）」
 2. 「追加」→「ロールの割り当ての追加」
 3. ロール: **共同作成者** を選択
-4. メンバー: 作成したService Principal（`sre-iac-starter-sp`）を選択
+4. メンバー: 作成したService Principal（`cloud-app-starter-sp`）を選択
 5. 「確認と割り当て」
 
 ---
@@ -64,7 +64,7 @@
 
 ### 2-1. リポジトリをフォーク
 
-1. https://github.com/sin1227488801/sre-iac-starter にアクセス
+1. https://github.com/sin1227488801/cloud-app-starter にアクセス
 2. 右上の「Fork」ボタンをクリック
 3. 自分のアカウントにフォーク
 
@@ -107,7 +107,7 @@
 2. 最後の方に表示される **Website URL** をクリック
 3. 🎉 **あなたのWebサイトが公開されました！**
 
-**例**: https://sreiacdevXXXXXX.z11.web.core.windows.net/
+**例**: https://cloudappdevXXXXXX.z11.web.core.windows.net/
 
 ---
 
@@ -125,7 +125,7 @@
 
 1. [Azure Portal](https://portal.azure.com) にログイン
 2. 「リソースグループ」を検索
-3. `sre-iac-starter-rg` を選択
+3. `cloud-app-starter-rg` を選択
 4. 「削除」ボタンをクリック
 5. リソースグループ名を入力して確認
 
@@ -153,7 +153,7 @@
    - 「Actions」タブ → 失敗したワークフロー → 詳細ログ
 
 2. **Azure Portal で状況確認**
-   - リソースグループ `sre-iac-starter-rg` の状態
+   - リソースグループ `cloud-app-starter-rg` の状態
 
 3. **完全リセット**
    ```

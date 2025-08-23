@@ -5,8 +5,8 @@ set -euo pipefail
 
 # 設定
 TF_DIR="envs/azure/azure-b1s-mvp"
-RG_NAME="sre-iac-starter-rg"
-VNET_NAME="sre-iac-starter-vnet"
+RG_NAME="cloud-app-starter-rg"
+VNET_NAME="cloud-app-starter-vnet"
 SUBNET_NAME="app"
 
 echo "=== Manual Terraform Import Script ==="
@@ -91,7 +91,7 @@ fi
 echo ""
 echo "4. Storage Account (静的サイト用)"
 if SA_NAME=$(az storage account list --resource-group "$RG_NAME" \
-    --query "[?contains(name, 'sreiac')].name | [0]" -o tsv 2>/dev/null) && [ -n "$SA_NAME" ]; then
+    --query "[?contains(name, 'cloudapp')].name | [0]" -o tsv 2>/dev/null) && [ -n "$SA_NAME" ]; then
     echo "   ✅ 存在します: $SA_NAME"
     if ! terraform -chdir="$TF_DIR" state show module.static_site.azurerm_storage_account.static_site >/dev/null 2>&1; then
         echo "   📥 インポートを実行します..."

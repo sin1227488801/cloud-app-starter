@@ -58,7 +58,7 @@ if az storage blob upload-batch \
 echo "Getting storage account key..."
 STORAGE_KEY=$(az storage account keys list \
   --account-name "$SA_NAME" \
-  --resource-group "sre-iac-starter-rg" \
+  --resource-group "cloud-app-starter-rg" \
   --query '[0].value' \
   -o tsv)
 

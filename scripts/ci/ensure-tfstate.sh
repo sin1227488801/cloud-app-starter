@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Inputs (env)
-: "${TFSTATE_RG:=sre-iac-starter-tfstate-rg}"
+: "${TFSTATE_RG:=cloud-app-starter-tfstate-rg}"
 : "${TFSTATE_LOC:=japaneast}"
 : "${TFSTATE_SA:=}"  # 初回のみ実使用。既存あれば上書きしない
 : "${TFSTATE_CONTAINER:=tfstate}"
@@ -15,7 +15,7 @@ EX_RG=$(az group show -n "$TFSTATE_RG" --query name -o tsv 2>/dev/null)
 set -e
 if [ -z "$EX_RG" ]; then
   az group create -n "$TFSTATE_RG" -l "$TFSTATE_LOC" \
-    --tags project=sre-iac-starter purpose=tfstate >/dev/null
+    --tags project=cloud-app-starter purpose=tfstate >/dev/null
 fi
 
 # 既存の tfstate 用ストレージアカウントをタグで探す
@@ -28,7 +28,7 @@ if [ -z "$EX_SA" ]; then
   if [ -z "$TFSTATE_SA" ]; then
     # 短いプレフィックス + 8文字のランダム = 最大16文字
     RANDOM_SUFFIX=$(date +%s | tail -c 4)$(shuf -i 1000-9999 -n 1 2>/dev/null || echo $((RANDOM % 9000 + 1000)))
-    TFSTATE_SA="sreiac${RANDOM_SUFFIX}"
+    TFSTATE_SA="cloudapp${RANDOM_SUFFIX}"
   fi
   
   # 24文字制限チェック
@@ -40,7 +40,7 @@ if [ -z "$EX_SA" ]; then
   echo "Creating new storage account: $TFSTATE_SA"
   if ! az storage account create -g "$TFSTATE_RG" -n "$TFSTATE_SA" -l "$TFSTATE_LOC" \
     --sku Standard_LRS --kind StorageV2 \
-    --tags project=sre-iac-starter purpose=tfstate >/dev/null; then
+    --tags project=cloud-app-starter purpose=tfstate >/dev/null; then
     echo "Error: Failed to create storage account $TFSTATE_SA"
     exit 1
   fi

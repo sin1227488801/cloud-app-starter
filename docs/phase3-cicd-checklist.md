@@ -14,8 +14,8 @@
 - [ ] リポジトリ作成・設定
 
   ```bash
-  gh repo create sre-iac-starter --private
-  git remote add origin https://github.com/username/sre-iac-starter.git
+  gh repo create cloud-app-starter --private
+  git remote add origin https://github.com/username/cloud-app-starter.git
   ```
 
 ### Secrets設定

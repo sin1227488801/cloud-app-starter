@@ -3,8 +3,8 @@ set -euo pipefail
 
 TFDIR="envs/azure/azure-b1s-mvp"
 SUB_ID="${ARM_SUBSCRIPTION_ID:?}"
-RG_NAME="sre-iac-starter-rg"
-VNET_NAME="sre-iac-starter-vnet"
+RG_NAME="cloud-app-starter-rg"
+VNET_NAME="cloud-app-starter-vnet"
 SUBNET_NAME="app"
 
 echo "=== Checking and importing existing resources ==="
@@ -73,7 +73,7 @@ else
   echo "[import] ℹ️ Subnet does not exist, will be created"
 fi
 
-# 静的サイト用 Storage Account はタグで推定（project=sre-iac-starter purpose=static-website）
+# 静的サイト用 Storage Account はタグで推定（project=cloud-app-starter purpose=static-website）
 set +e
 SA_NAME=$(az storage account list --resource-group "$RG_NAME" \
   --query "[?tags.purpose=='static-website'].name | [0]" -o tsv 2>/dev/null)
@@ -83,7 +83,7 @@ set -e
 if [ -z "$SA_NAME" ]; then
   set +e
   SA_NAME=$(az storage account list --resource-group "$RG_NAME" \
-    --query "[?contains(name, 'sreiac')].name | [0]" -o tsv 2>/dev/null)
+    --query "[?contains(name, 'cloudapp')].name | [0]" -o tsv 2>/dev/null)
   set -e
 fi
 

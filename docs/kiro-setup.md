@@ -1,6 +1,6 @@
-# 📖 SRE IaC Starter - 詳細セットアップガイド
+# 📖 Cloud App Starter - 詳細セットアップガイド
 
-このドキュメントは、SRE IaC Starterプロジェクトの詳細な設定手順とトラブルシューティングガイドです。
+このドキュメントは、Cloud App Starterプロジェクトの詳細な設定手順とトラブルシューティングガイドです。
 
 ## 📊 進捗状況
 
@@ -13,10 +13,10 @@
 
 ### デプロイ済みリソース
 
-- **Azure Static Website**: <https://sreiacdevm627ymaf.z11.web.core.windows.net/>
-- **Storage Account**: sreiacdevm627ymaf
-- **Resource Group**: sre-iac-starter-rg
-- **Virtual Network**: sre-iac-starter-vnet (10.10.0.0/16)
+- **Azure Static Website**: <https://cloudappdevm627ymaf.z11.web.core.windows.net/>
+- **Storage Account**: cloudappdevm627ymaf
+- **Resource Group**: cloud-app-starter-rg
+- **Virtual Network**: cloud-app-starter-vnet (10.10.0.0/16)
 
 ### 月額コスト
 
@@ -111,10 +111,10 @@ make fmt
 ### 作成されたリソース
 ```bash
 Azure Resources:
-├── Resource Group: sre-iac-starter-rg
-├── Virtual Network: sre-iac-starter-vnet (10.10.0.0/16)
+├── Resource Group: cloud-app-starter-rg
+├── Virtual Network: cloud-app-starter-vnet (10.10.0.0/16)
 ├── Subnet: app (10.10.1.0/24)
-└── Storage Account: sreiacdevm627ymaf
+└── Storage Account: cloudappdevm627ymaf
     └── Static Website: $web container
 ```bash
 
