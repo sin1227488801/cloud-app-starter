@@ -91,7 +91,7 @@ if SA_NAME=$(az storage account list --resource-group "$RG_NAME" --query "[?cont
         terraform -chdir="$TFDIR" import module.static_site.azurerm_storage_account.static_site "$SA_ID"
         echo "✅ Imported successfully"
     fi
-    
+
     # Storage Account Network Rules
     echo ""
     echo "5. Importing Storage Account Network Rules..."

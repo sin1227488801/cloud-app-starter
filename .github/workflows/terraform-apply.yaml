@@ -7,6 +7,7 @@ on:
       - "modules/**"
       - "app/**"
       - "app-landing/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
