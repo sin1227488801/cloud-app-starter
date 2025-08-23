@@ -1,3 +1,4 @@
 terraform {
-  backend "azurerm" {}
+  # ローカル状態でテスト（リモートバックエンドは後で設定）
+  # backend "azurerm" {}
 }
