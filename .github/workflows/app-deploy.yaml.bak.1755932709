@@ -5,7 +5,6 @@ on:
     paths:
       - "app/**"
       - "app-landing/**"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -71,6 +70,43 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
           set -euo pipefail
+<<<<<<< HEAD
+
+          TFDIR="envs/azure/azure-b1s-mvp"
+
+          # 1) まず -raw で直接取得（stderr を捨てる）。失敗しても続行。
+          SA_NAME="$(terraform -chdir="$TFDIR" output -raw storage_account_name 2>/dev/null || true)"
+          WEB_URL="$(terraform -chdir="$TFDIR" output -raw static_website_url 2>/dev/null || true)"
+
+          # 2) もし上が空なら -json を使って安全にパース（python を使用：GH runner にあり）
+          if [ -z "$SA_NAME" ] || [ -z "$WEB_URL" ]; then
+            # terraform output -json で JSON を取得（stderr を捨てる）
+            OUT_JSON="$(terraform -chdir="$TFDIR" output -json 2>/dev/null || echo '{}')"
+
+            if [ -z "$SA_NAME" ]; then
+              SA_NAME="$(echo "$OUT_JSON" | python -c "import sys,json; j=json.load(sys.stdin); print(j.get('storage_account_name',{}).get('value',''))" 2>/dev/null || true)"
+            fi
+
+            if [ -z "$WEB_URL" ]; then
+              WEB_URL="$(echo "$OUT_JSON" | python -c "import sys,json; j=json.load(sys.stdin); print(j.get('static_website_url',{}).get('value',''))" 2>/dev/null || true)"
+            fi
+          fi
+
+          # 3) 安全化：先頭行だけ取り、改行やCRを除去
+          SA_NAME="$(printf '%s' "$SA_NAME" | tr -d '\r' | head -n1 || true)"
+          WEB_URL="$(printf '%s' "$WEB_URL" | tr -d '\r' | head -n1 || true)"
+
+          # 4) 出力（必ず「name=value」の形式で書く）
+          echo "sa_name=$SA_NAME" >> $GITHUB_OUTPUT
+          echo "web_url=$WEB_URL" >> $GITHUB_OUTPUT
+
+          # debug logs (optional) — comment out in production if noisy
+          echo ">> debug: sa_name='$SA_NAME'"
+          echo ">> debug: web_url='$WEB_URL'"
+
+
+      - name: Upload to $web
+=======
 
           echo "Checking Terraform state and outputs..."
 
@@ -118,6 +154,7 @@ jobs:
           fi
 
       - name: Upload to Static Website
+>>>>>>> e184bc0 (ci: fix YAML EOF newline and relax yamllint for workflows)
         env:
           SA_NAME: ${{ steps.out.outputs.sa_name }}
           WEB_URL: ${{ steps.out.outputs.web_url }}
@@ -165,6 +202,11 @@ jobs:
               '</html>' \
               > "$SRC_DIR/index.html"
           fi
+<<<<<<< HEAD
+          az storage blob upload-batch --account-name "$SA_NAME" -s "$SRC_DIR" -d '$web' --overwrite --auth-mode login
+          echo "${{ steps.out.outputs.web_url }}"
+
+=======
 
           # ファイルをアップロード
           echo "Uploading files to web container..."
@@ -184,3 +226,4 @@ jobs:
             echo "Upload failed!"
             exit 1
           fi
+>>>>>>> e184bc0 (ci: fix YAML EOF newline and relax yamllint for workflows)

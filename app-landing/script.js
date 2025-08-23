@@ -23,7 +23,7 @@
         setupOriginLink();
         loadMetadata();
         setupAnimations();
-        
+
         // Refresh metadata every 30 seconds
         setInterval(loadMetadata, 30000);
     }
@@ -111,7 +111,7 @@
                 link.addEventListener('mouseleave', () => {
                     link.style.textDecoration = 'none';
                 });
-                
+
                 elements.gitSha.innerHTML = '';
                 elements.gitSha.appendChild(link);
             }
@@ -158,7 +158,7 @@
         if (elements.ciBadge) {
             const ciIcon = elements.ciBadge.querySelector('.badge-icon');
             const ciText = elements.ciBadge.querySelector('span:last-child');
-            
+
             if (isSuccess) {
                 ciIcon.textContent = '✅';
                 ciText.textContent = 'CI: Passed';
@@ -173,7 +173,7 @@
         if (elements.deployBadge) {
             const deployIcon = elements.deployBadge.querySelector('.badge-icon');
             const deployText = elements.deployBadge.querySelector('span:last-child');
-            
+
             if (isSuccess) {
                 deployIcon.textContent = '🚀';
                 deployText.textContent = 'Deploy: Live';
@@ -188,7 +188,7 @@
         if (elements.statusBadge) {
             const statusIcon = elements.statusBadge.querySelector('.badge-icon');
             const statusText = elements.statusBadge.querySelector('span:last-child');
-            
+
             statusIcon.textContent = '⚡';
             statusText.textContent = 'Status: Active';
             elements.statusBadge.className = 'badge success';
@@ -250,7 +250,7 @@
             node.addEventListener('mouseenter', () => {
                 node.style.transform = 'scale(1.05)';
             });
-            
+
             node.addEventListener('mouseleave', () => {
                 node.style.transform = 'scale(1)';
             });
@@ -276,12 +276,12 @@
      */
     function handleThemeChange() {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-        
+
         function updateTheme(e) {
             // Currently using dark theme only, but ready for light theme
             document.documentElement.setAttribute('data-theme', e.matches ? 'light' : 'dark');
         }
-        
+
         mediaQuery.addListener(updateTheme);
         updateTheme(mediaQuery);
     }
