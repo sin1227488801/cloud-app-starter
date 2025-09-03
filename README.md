@@ -11,7 +11,7 @@
 
 ## 🎯 デモサイト
 
-**実際に作成されるサイト**: https://cloudadevypglfxby.z11.web.core.windows.net
+**実際に作成されるサイト**: https://cloudadevypglfxby.z11.web.core.windows.net/
 
 ## 🚀 今すぐ始める
 
@@ -183,5 +183,3 @@ pre-commit run --all-files
 - **Security**: tfsec/checkov統合
 - **Testing**: Terratest導入
 - **Environments**: staging/production分離
-
-**🎯 デモサイト**: [https://cloudappdevohgqvfjy.z11.web.core.windows.net/](https://cloudappdevohgqvfjy.z11.web.core.windows.net/)
