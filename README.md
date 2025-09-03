@@ -11,7 +11,7 @@
 
 ## 🎯 デモサイト
 
-**実際に作成されるサイト**: https://cloudadevypglfxby.z11.web.core.windows.net/
+**実際に作成されるサイト**: https://cloudadevydx7dgd9.z11.web.core.windows.net/
 
 ## 🚀 今すぐ始める
 
@@ -82,7 +82,7 @@ Copy-Item .env.example .env
 ### 🎯 デモの見方
 
 1. **ローカルデモ**: 上記手順でデプロイ後、`make url-azure`で表示されるURLにアクセス
-2. **ライブデモ**: [https://cloudappdevm627ymaf.z11.web.core.windows.net/](https://cloudappdevm627ymaf.z11.web.core.windows.net/)
+2. **ライブデモ**: [https://cloudadevydx7dgd9.z11.web.core.windows.net/](https://cloudadevydx7dgd9.z11.web.core.windows.net/
 3. **UI機能**:
    - フェーズ進捗の可視化
    - リアルタイムデプロイ状況
@@ -183,5 +183,3 @@ pre-commit run --all-files
 - **Security**: tfsec/checkov統合
 - **Testing**: Terratest導入
 - **Environments**: staging/production分離
-
-**🎯 デモサイト**: [https://cloudappdevohgqvfjy.z11.web.core.windows.net/](https://cloudappdevohgqvfjy.z11.web.core.windows.net/)
