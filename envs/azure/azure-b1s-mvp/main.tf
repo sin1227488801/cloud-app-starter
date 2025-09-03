@@ -1,10 +1,14 @@
+# Local Development Configuration
+# This file is used when running locally with make commands
+
 terraform {
   required_version = ">= 1.9.0"
   required_providers {
     azurerm = { source = "hashicorp/azurerm", version = "~> 3.117" }
   }
 
-  backend "azurerm" {}
+  # No backend configuration for local development
+  # State will be stored locally in terraform.tfstate
 }
 
 provider "azurerm" {

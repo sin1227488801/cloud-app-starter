@@ -644,15 +644,11 @@ body {
 
 .arch-node {
   cursor: pointer;
-  transition: all var(--transition-bounce);
-}
-
-.arch-node:hover {
-  transform: scale(1.05);
+  transition: all var(--transition-base);
 }
 
 .arch-node:hover rect {
-  filter: brightness(1.2);
+  filter: brightness(1.1);
   stroke-width: 3;
 }
 

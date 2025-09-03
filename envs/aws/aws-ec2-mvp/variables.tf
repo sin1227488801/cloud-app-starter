@@ -1,6 +1,6 @@
 variable "project" {
   type    = string
-  default = "sre-iac-starter"
+  default = "cloud-app-starter"
 }
 
 variable "aws_region" {
