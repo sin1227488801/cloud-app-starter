@@ -4,7 +4,7 @@
  */
 
 // DOM Content Loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadDeploymentMeta();
     initializeUI();
 });
@@ -278,16 +278,7 @@ function initializeUI() {
         });
     });
 
-    // Add hover effects for architecture nodes
-    document.querySelectorAll('.arch-node').forEach(node => {
-        node.addEventListener('mouseenter', () => {
-            node.style.transform = 'scale(1.05)';
-        });
-
-        node.addEventListener('mouseleave', () => {
-            node.style.transform = 'scale(1)';
-        });
-    });
+    // Architecture nodes styling handled by CSS only
 
     // Refresh meta.json every 30 seconds
     setInterval(loadDeploymentMeta, 30000);

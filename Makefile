@@ -8,7 +8,7 @@ TF_IMAGE := hashicorp/terraform:$(TF_VERSION)
 CLOUD ?= azure
 WORKDIR := /workspace
 
-docker-run = docker run --rm -it $(ENVFLAG) -v $(PWD):$(WORKDIR) -w $(WORKDIR) $(TF_IMAGE)
+docker-run = docker run --rm -it $(ENVFLAG) -v "$(PWD)":$(WORKDIR) -w $(WORKDIR) $(TF_IMAGE)
 
 ifeq ($(CLOUD),azure)
 ENV_DIR := envs/azure/azure-b1s-mvp
@@ -42,7 +42,8 @@ app-deploy:
 			echo "🚀 Uploading files to $$STORAGE_ACCOUNT..."; \
 			docker run --rm -it $(ENVFLAG) -v $(PWD):$(WORKDIR) -w $(WORKDIR) mcr.microsoft.com/azure-cli:latest sh -c \
 				'az login --service-principal -u $$ARM_CLIENT_ID -p $$ARM_CLIENT_SECRET --tenant $$ARM_TENANT_ID > /dev/null && \
-				 az storage blob upload-batch --account-name '$$STORAGE_ACCOUNT' --source app --destination "$$web" --auth-mode key --overwrite'; \
+				 STORAGE_KEY=$$(az storage account keys list --account-name '$$STORAGE_ACCOUNT' --resource-group cloud-app-starter-rg --query "[0].value" -o tsv) && \
+				 az storage blob upload-batch --account-name '$$STORAGE_ACCOUNT' --account-key "$$STORAGE_KEY" --source app --destination "$$web" --overwrite'; \
 			echo "✅ Application deployed successfully!"; \
 		else \
 			echo "❌ Storage account not found. Run 'make up-azure' first."; \
@@ -63,16 +64,12 @@ docker-init:
 docker-init-local:
 	@echo "🔧 Initializing Terraform for local development..."
 	@echo "📁 Using local configuration..."
-	@# main.tfが既にローカル設定でない場合は切り替え
-	@if [ -f "$(ENV_DIR)/main.tf.remote" ]; then \
-		echo "✅ Already using local configuration"; \
+	@# main.tfがリモート設定の場合はローカル設定に切り替え
+	@if grep -q "backend \"azurerm\"" "$(ENV_DIR)/main.tf" 2>/dev/null; then \
+		echo "❌ Remote configuration detected. Please use 'make cleanup-local' first to switch to local development."; \
+		exit 1; \
 	else \
-		if [ -f "$(ENV_DIR)/main.tf" ]; then \
-			mv "$(ENV_DIR)/main.tf" "$(ENV_DIR)/main.tf.remote"; \
-			echo "✅ Backed up remote configuration"; \
-		fi; \
-		cp "$(ENV_DIR)/main.local.tf" "$(ENV_DIR)/main.tf"; \
-		echo "✅ Switched to local configuration"; \
+		echo "✅ Already using local configuration"; \
 	fi
 	@# ローカルstateで初期化
 	$(docker-run) -chdir=$(ENV_DIR) init -reconfigure
@@ -98,6 +95,7 @@ cleanup-local:
 	@echo "🧹 Cleaning up local configuration..."
 	@# main.tfを元に戻す
 	@if [ -f "$(ENV_DIR)/main.tf.remote" ]; then \
+		rm -f "$(ENV_DIR)/main.tf"; \
 		mv "$(ENV_DIR)/main.tf.remote" "$(ENV_DIR)/main.tf"; \
 		echo "✅ Configuration restored to remote backend"; \
 	else \

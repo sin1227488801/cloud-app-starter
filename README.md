@@ -1,18 +1,17 @@
 # 🚀 Cloud App Starter - ワンクリックWebサイト作成ツール
 
-**プログラミング初心者でもOK！** ブラウザだけで美しいWebサイトを5分で作成・公開できます。
+**初心者でもOK！** ブラウザだけで美しいWebサイトを5分で作成・公開できます。
 
 ## ✨ 何ができる？
 
-- 🌐 **プロ級Webサイト**: 美しいデザインのサイトを自動生成
-- ⚡ **5分で公開**: 面倒な設定不要、ワンクリックで世界に公開
-- 💰 **ほぼ無料**: 月数円程度、使わない時は完全無料
-- 🗑️ **簡単削除**: 不要になったら1クリックで完全削除
-- 📱 **どこでも**: Windows/Mac/Linux/スマホ対応
+- 🌐 **Webサイト作成**: サイトを自動生成
+- ⚡ **5分で公開**: 面倒な設定不要、数クリックで世界に公開
+- 💰 **ほぼ無料**: 月数円程度、使わない時は削除で完全無料
+- 🗑️ **簡単削除**: 不要になったら数クリックで削除
 
 ## 🎯 デモサイト
 
-**実際に作成されるサイト**: https://cloudappdevohgqvfjy.z11.web.core.windows.net/
+**実際に作成されるサイト**: https://cloudadevypglfxby.z11.web.core.windows.net
 
 ## 🚀 今すぐ始める
 
@@ -28,9 +27,9 @@
 ## 🎯 技術詳細（開発者向け）
 
 ### ✅ 実装済み機能
-- **Infrastructure as Code**: Terraformによる完全自動化
+- **Infrastructure as Code**: Terraformによる自動化
 - **CI/CD Pipeline**: GitHub Actionsによる自動デプロイ
-- **Multi-Cloud対応**: Azure/AWS両対応
+- **Multi-Cloud対応**: Azure対応
 - **セキュリティ**: Service Principal認証
 - **モニタリング**: リアルタイム状況表示
 - **ワンクリック削除**: 安全な削除システム
@@ -52,7 +51,7 @@ cd cloud-app-starter
 
 # 2. 認証情報設定
 cp .env.example .env
-# .envを編集して実際の認証情報を設定
+# .envファイルを編集して実際の認証情報を設定
 
 # 3. ワンクリックデプロイ
 make up-azure     # インフラ構築

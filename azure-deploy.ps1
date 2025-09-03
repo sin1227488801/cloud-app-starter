@@ -50,7 +50,7 @@ function Initialize-LocalConfig {
     }
     
     Write-Host "🔧 Initializing Terraform..." -ForegroundColor Blue
-    Invoke-Expression "$DOCKER_RUN -chdir=$ENV_DIR init -reconfigure"
+    Invoke-Expression "$DOCKER_RUN -chdir=`"$ENV_DIR`" init -reconfigure"
 }
 
 function Deploy-Infrastructure {
@@ -60,7 +60,7 @@ function Deploy-Infrastructure {
     Initialize-LocalConfig
     
     Write-Host "🚀 Applying Terraform configuration..." -ForegroundColor Blue
-    Invoke-Expression "$DOCKER_RUN -chdir=$ENV_DIR apply -auto-approve"
+    Invoke-Expression "$DOCKER_RUN -chdir=`"$ENV_DIR`" apply -auto-approve"
 }
 
 function Destroy-Infrastructure {
@@ -72,7 +72,7 @@ function Destroy-Infrastructure {
     Initialize-LocalConfig
     
     Write-Host "🗑️ Planning destruction..." -ForegroundColor Yellow
-    Invoke-Expression "$DOCKER_RUN -chdir=$ENV_DIR plan -destroy"
+    Invoke-Expression "$DOCKER_RUN -chdir=`"$ENV_DIR`" plan -destroy"
     
     Write-Host ""
     Write-Host "⚠️  FINAL CONFIRMATION REQUIRED ⚠️" -ForegroundColor Red
@@ -81,7 +81,7 @@ function Destroy-Infrastructure {
     
     if ($confirm -eq "yes") {
         Write-Host "🗑️ Destroying resources..." -ForegroundColor Red
-        Invoke-Expression "$DOCKER_RUN -chdir=$ENV_DIR destroy -auto-approve"
+        Invoke-Expression "$DOCKER_RUN -chdir=`"$ENV_DIR`" destroy -auto-approve"
         
         # Cleanup local configuration
         if (Test-Path "$ENV_DIR/main.tf.remote") {
@@ -102,9 +102,12 @@ function Deploy-App {
     Write-Host "📦 Deploying application..." -ForegroundColor Blue
     
     if (Test-Path "app") {
+        # ローカル設定で初期化
+        Initialize-LocalConfig
+        
         try {
-            $result = docker run --rm --env-file .env -v "${PWD}:/workspace" -w /workspace hashicorp/terraform:1.9.5 -chdir=$ENV_DIR output -raw storage_account_name 2>$null
-            if ($LASTEXITCODE -eq 0 -and $result) {
+            $result = docker run --rm --env-file .env -v "${PWD}:/workspace" -w /workspace hashicorp/terraform:1.9.5 -chdir="$ENV_DIR" output -raw storage_account_name 2>$null
+            if ($LASTEXITCODE -eq 0 -and $result -and $result.Trim()) {
                 $storageAccount = $result.Trim()
                 Write-Host "🚀 Uploading files to $storageAccount..." -ForegroundColor Blue
                 $azureCmd = "docker run --rm -it --env-file .env -v `"${PWD}:/workspace`" -w /workspace mcr.microsoft.com/azure-cli:latest sh -c 'az login --service-principal -u `$ARM_CLIENT_ID -p `$ARM_CLIENT_SECRET --tenant `$ARM_TENANT_ID > /dev/null && az storage blob upload-batch --account-name $storageAccount --source app --destination `"\`$web`" --auth-mode key --overwrite'"
@@ -123,8 +126,12 @@ function Deploy-App {
 
 function Get-WebsiteUrl {
     Write-Host "🌐 Getting Azure website URL..." -ForegroundColor Blue
+    
+    # ローカル設定で初期化
+    Initialize-LocalConfig
+    
     try {
-        $result = docker run --rm --env-file .env -v "${PWD}:/workspace" -w /workspace hashicorp/terraform:1.9.5 -chdir=$ENV_DIR output -raw static_website_url 2>$null
+        $result = docker run --rm --env-file .env -v "${PWD}:/workspace" -w /workspace hashicorp/terraform:1.9.5 -chdir="$ENV_DIR" output -raw static_website_url 2>$null
         if ($LASTEXITCODE -eq 0 -and $result) {
             $url = $result.Trim()
             Write-Host "🌐 Website URL: $url" -ForegroundColor Green
