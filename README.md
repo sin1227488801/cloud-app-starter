@@ -11,7 +11,7 @@
 
 ## 🎯 デモサイト
 
-**実際に作成されるサイト**: https://cloudadevypglfxby.z11.web.core.windows.net/
+**実際に作成されるサイト**: <https://cloudadevypglfxby.z11.web.core.windows.net/>
 
 ## 🚀 今すぐ始める
 
@@ -27,6 +27,7 @@
 ## 🎯 技術詳細（開発者向け）
 
 ### ✅ 実装済み機能
+
 - **Infrastructure as Code**: Terraformによる自動化
 - **CI/CD Pipeline**: GitHub Actionsによる自動デプロイ
 - **Multi-Cloud対応**: Azure対応
@@ -35,6 +36,7 @@
 - **ワンクリック削除**: 安全な削除システム
 
 ### 🏗️ アーキテクチャ
+
 ```
 GitHub → Actions → Terraform → Azure Storage → Static Website
    ↓        ↓         ↓            ↓              ↓
@@ -44,6 +46,7 @@ GitHub → Actions → Terraform → Azure Storage → Static Website
 ### 🛠️ 開発者向けローカル環境
 
 #### Linux/Mac (Make使用)
+
 ```bash
 # 1. リポジトリクローン
 git clone https://github.com/sin1227488801/cloud-app-starter.git
@@ -62,6 +65,7 @@ make down-azure   # 完全削除
 ```
 
 #### Windows (PowerShell使用)
+
 ```powershell
 # 1. リポジトリクローン
 git clone https://github.com/sin1227488801/cloud-app-starter.git
@@ -102,6 +106,7 @@ Developer → git push → GitHub Actions → Terraform → Azure Storage → St
 ### ワンクリック削除（ローカル）
 
 #### Linux/Mac
+
 ```bash
 # 5秒の確認待機後に削除実行
 make down-azure
@@ -111,12 +116,14 @@ bash scripts/destroy-azure.sh
 ```
 
 #### Windows
+
 ```powershell
 # 5秒の確認待機後に削除実行
 .\azure-deploy.ps1 down
 ```
 
 ### GitHub Actions経由での削除
+
 1. GitHub Actions → terraform-destroy → Run workflow
 2. 確認フィールドに「DESTROY」と入力
 3. 実行して全リソースを削除
